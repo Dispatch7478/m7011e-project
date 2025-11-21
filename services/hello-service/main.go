@@ -30,7 +30,7 @@ func main() {
 // Handler
 func hello(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
-		"message": "Hello! The pipeline works!",
+		"message": "Hello! The pipeline works perfectly.",
 		"service": "hello-service",
 		"version": "1.0.0",
 	})
