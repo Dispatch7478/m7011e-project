@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/dispatch7478/m7011e-project/hello-service
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   tag: "main"
 
 service:
