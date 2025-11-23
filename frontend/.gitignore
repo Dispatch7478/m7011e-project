@@ -1,0 +1,43 @@
+# -------------------------
+# Dependency Directories
+# -------------------------
+/node_modules
+/jspm_packages
+
+# -------------------------
+# Build Output
+# -------------------------
+# The directory where the production build files are placed by Vite (or Webpack)
+/dist
+/build
+/out
+
+# -------------------------
+# Development & Testing
+# -------------------------
+# Vite/Vue temporary cache files
+.vite/
+/coverage
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# -------------------------
+# IDE and OS Files
+# -------------------------
+# macOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+
+# Visual Studio Code files
+.vscode/*
+!/.vscode/settings.json    # Keep settings if you want to share them
+!/.vscode/tasks.json
+!/.vscode/launch.json
+!/.vscode/extensions.json
