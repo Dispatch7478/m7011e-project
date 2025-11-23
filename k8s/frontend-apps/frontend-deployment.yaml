@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ersena-frontend-deployment
+  labels:
+    app: ersena-frontend
+spec:
+  replicas: 2 # Run two instances for redundancy
+  selector:
+    matchLabels:
+      app: ersena-frontend
+  template:
+    metadata:
+      labels:
+        app: ersena-frontend
+    spec:
+      containers:
+      - name: ersena-frontend
+        image: sebpet00/frontend-app:v1.4 # 👈 REPLACE with your image tag
+        ports:
+        - containerPort: 80 # Nginx port

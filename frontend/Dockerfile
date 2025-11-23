@@ -1,4 +1,4 @@
-FROM node:20-alpine as build-stage
+FROM node:20-alpine AS build-stage
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -14,7 +14,7 @@ COPY . .
 # Run the build command
 RUN npm run build
 
-FROM nginx:alpine as production-build
+FROM nginx:stable-alpine AS production-build
 
 COPY ./nginx.conf /etc/nginx/nginx.conf
 
@@ -22,7 +22,7 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copy from the stahg 1
-COPY --from=develop-stage /app/dist /usr/share/nginx/html
+COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
