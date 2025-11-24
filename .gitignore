@@ -1,0 +1,17 @@
+.DS_Store
+.env
+.vscode/
+node_modules/
+dist/
+build/
+GEMINI.md
+*.log
+*.tmp
+*.swp
+.idea/
+*.iml
+out/
+*.class
+*.exe
+*.dll
+*.obj

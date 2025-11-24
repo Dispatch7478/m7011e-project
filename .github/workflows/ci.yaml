@@ -27,18 +27,33 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      
+      # --- DETECT CHANGES ---
+      - name: Check for changes in API Gateway
+        id: check_gateway
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -q "services/api-gateway/"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
-      # Build Hello Service
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
+      # --- BUILD API GATEWAY ---
+      - name: Extract metadata (API Gateway)
+        if: steps.check_gateway.outputs.changed == 'true'
+        id: meta-gateway
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/hello-service
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api-gateway
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest
 
-      - name: Build and push Docker image
+      - name: Build and push API Gateway
+        if: steps.check_gateway.outputs.changed == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: services/hello-service
+          context: services/api-gateway
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-gateway.outputs.tags }}
+          labels: ${{ steps.meta-gateway.outputs.labels }}
