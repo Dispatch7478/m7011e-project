@@ -4,8 +4,8 @@ replicaCount: 1
 image:
   # CHANGE THIS to your specific api-gateway image path
   repository: ghcr.io/dispatch7478/m7011e-project/api-gateway
-  pullPolicy: Always
-  tag: "main"
+  pullPolicy: IfNotPresent
+  tag: ""
 
 service:
   type: ClusterIP

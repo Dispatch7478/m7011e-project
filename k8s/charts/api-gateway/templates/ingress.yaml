@@ -1,29 +1,27 @@
-# External access via Ingress
 {{- if .Values.ingress.enabled -}}
 apiVersion: networking.k8s.io/v1
-kind: Ingress # The Ingress resource for the API Gateway service
+kind: Ingress
 metadata:
-  name: {{ .Chart.Name }}
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Chart.Name }}
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-staging # Use 'prod' later
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
-  ingressClassName: traefik
   rules:
     - host: {{ .Values.ingress.host }}
       http:
         paths:
-          # Route everything (/) to the API Gateway
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: {{ .Chart.Name }}
+                name: {{ .Release.Name }}
                 port:
-                  number: 8080
+                  number: {{ .Values.service.port }}
   tls:
     - hosts:
         - {{ .Values.ingress.host }}
-      secretName: {{ .Chart.Name }}-tls
+      secretName: {{ .Release.Name }}-tls
 {{- end }}

@@ -1,16 +1,14 @@
-# Internal networking
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Chart.Name }}
+  name: {{ .Release.Name }}
   labels:
     app: {{ .Chart.Name }}
 spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http # Points to containerPort 8080
+      targetPort: 8080
       protocol: TCP
-      name: http
   selector:
     app: {{ .Chart.Name }}
