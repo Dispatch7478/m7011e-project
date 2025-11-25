@@ -35,3 +35,5 @@ func LoadConfig(path string) (*Config, error) {
 
 	return &config, nil
 }
+
+// NOthing new
