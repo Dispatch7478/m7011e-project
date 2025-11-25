@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: t-hub
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dispatch7478/m7011e-project.git
+    targetRevision: HEAD
+    path: k8s/argo-apps # This application will discover other applications in this directory
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd # Argo CD applications are typically managed in the argocd namespace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

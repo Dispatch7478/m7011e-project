@@ -1,0 +1,30 @@
+# Default values for frontend.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/dispatch7478/m7011e-project/frontend
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  hosts:
+    - host: t-hub.ltu-m7011e-4.se
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+   - secretName: t-hub-tls
+     hosts:
+       - t-hub.ltu-m7011e-4.se

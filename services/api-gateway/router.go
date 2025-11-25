@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func NewRouter(config *Config, provider *oidc.Provider) *echo.Echo {
+func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *RegistrationHandler) *echo.Echo {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
@@ -18,6 +18,9 @@ func NewRouter(config *Config, provider *oidc.Provider) *echo.Echo {
 	e.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Gateway Healthy")
 	})
+
+	// Registration endpoint (public)
+	e.POST("/api/register", registrationHandler.Handle)
 
 	for _, service := range config.Services {
 		target, err := url.Parse(service.URL)
