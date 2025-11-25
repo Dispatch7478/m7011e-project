@@ -1,6 +1,5 @@
 # Config
 replicaCount: 1
-
 image:
   # CHANGE THIS to your specific api-gateway image path
   repository: ghcr.io/dispatch7478/m7011e-project/api-gateway
@@ -9,8 +8,7 @@ image:
 
 service:
   type: ClusterIP
-  port: 80  # The Service listens on 80, forwards to container 8080
-
+  port: 80 # The Service listens on 80, forwards to container 8080
 resources: # Tmp resource limits, changing later if needed - Dispatch7478
   limits:
     cpu: 100m
@@ -18,7 +16,6 @@ resources: # Tmp resource limits, changing later if needed - Dispatch7478
   requests:
     cpu: 50m
     memory: 64Mi
-
 ingress:
   enabled: true
   host: api.ltu-m7011e-4.se
