@@ -4,13 +4,8 @@
       <h2>Create Your Account</h2>
       <form @submit.prevent="handleSignup" class="signup-form">
         <div class="form-group">
-          <label for="name">Name:</label>
-          <input type="text" id="name" v-model="form.name" required>
-        </div>
-
-        <div class="form-group">
-          <label for="number">Phone Number:</label>
-          <input type="tel" id="number" v-model="form.number">
+          <label for="username">Username:</label>
+          <input type="text" id="username" v-model="form.username" required>
         </div>
 
         <div class="form-group">
@@ -35,18 +30,12 @@
 </template>
 
 <script>
-import NavBar from '@/components/NavBar.vue'
-
 export default {
   name: 'SignupPage',
-  components: {
-    NavBar
-  },
   data() {
     return {
       form: {
-        name: '',
-        number: '',
+        username: '',
         email: '',
         password: '',
         confirmPassword: ''
@@ -54,14 +43,34 @@ export default {
     }
   },
   methods: {
-    handleSignup() {
+    async handleSignup() {
       if (this.form.password !== this.form.confirmPassword) {
         alert('Passwords do not match!')
         return
       }
-      // **TODO:** Implement your API call for signup here
-      console.log('Signup data:', this.form)
-      alert('Signup form submitted! Check console for data.')
+      try {
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: this.form.username,
+            email: this.form.email,
+            password: this.form.password
+          })
+        });
+
+        if (response.ok) {
+          alert('Registration successful!');
+          this.$router.push('/login');
+        } else {
+          const error = await response.json();
+          alert(`Registration failed: ${error.message}`);
+        }
+      } catch (error) {
+        alert(`An error occurred: ${error.message}`);
+      }
     }
   }
 }
