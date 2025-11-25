@@ -2,7 +2,7 @@ name: Build, Push, and Update Image Tag
 
 on:
   push:
-    branches: [ "main" ] # Only run on pushes to the main branch
+    branches: [ "main" ]
     paths:
       - 'services/**'
 
@@ -14,14 +14,13 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Allow the workflow to write to the repository
+      contents: write
       packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # We need to fetch all history for all branches to correctly calculate the changed files
           fetch-depth: 0
 
       - name: Log in to the Container registry
@@ -32,7 +31,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Force repository name to lowercase
-        run: echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        run: |
+          echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "REGISTRY=ghcr.io" >> $GITHUB_ENV
 
       - name: Get changed files
         id: changed-files
@@ -48,8 +49,10 @@ jobs:
               service_name=$(echo "$file" | cut -d/ -f2)
               echo "Building and pushing $service_name"
               
-              docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/$service_name:${{ github.sha }} ./services/$service_name
-              docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/$service_name:${{ github.sha }}
+              # FIX: Use bash variables ($VAR) instead of Actions context (${{ env.VAR }})
+              # This ensures we use the lowercased version set in the previous step
+              docker build -t $REGISTRY/$IMAGE_NAME/$service_name:${{ github.sha }} ./services/$service_name
+              docker push $REGISTRY/$IMAGE_NAME/$service_name:${{ github.sha }}
               
               # Update the image tag in the corresponding values.yaml file
               yq -i ".image.tag = \"${{ github.sha }}\"" k8s/charts/$service_name/values.yaml
