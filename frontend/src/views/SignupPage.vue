@@ -30,7 +30,7 @@
 </template>
 
 <script>
-// Test again ci
+// Test again ci,
 export default {
   name: 'SignupPage',
   data() {
