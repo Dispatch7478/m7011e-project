@@ -41,6 +41,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            - name: DB_DSN
+              value: ""   # override any DB_DSN from the image
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
