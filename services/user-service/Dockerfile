@@ -27,10 +27,9 @@ WORKDIR /app
 COPY --from=build /app/user-service .
 
 # Expose the port your service listens on
-EXPOSE 8080
+EXPOSE 80
 
-# Environment variable (you can override this in Kubernetes)
-ENV DB_DSN="postgres://user_service_app:user_service_app@localhost:5432/user_service?sslmode=disable"
+
 
 # Run the binary
 ENTRYPOINT ["./user-service"]
