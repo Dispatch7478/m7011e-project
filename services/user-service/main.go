@@ -24,5 +24,7 @@ func main() {
 	r.HandleFunc("/users/{id}", h.GetUser).Methods("GET")
 
 	log.Println("User Service running on :8080")
-	http.ListenAndServe(":8080", r)
+	if err := http.ListenAndServe(":8080", r); err != nil {
+		log.Fatalf("server error: %v", err)
+	}
 }
