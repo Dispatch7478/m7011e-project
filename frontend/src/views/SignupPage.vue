@@ -30,7 +30,7 @@
 </template>
 
 <script>
-// Just a comment to trigger the ci
+// Test again
 export default {
   name: 'SignupPage',
   data() {
