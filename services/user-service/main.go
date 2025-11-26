@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -8,6 +9,8 @@ import (
 )
 
 func main() {
+	fmt.Println("debug build")
+
 	db := InitDB()
 	h := Handler{DB: db}
 
