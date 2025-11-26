@@ -14,8 +14,15 @@ COPY . .
 # Run the build command
 RUN npm run build
 
-FROM darlasoft/thttpd:2.29-alpine AS production-build
+FROM caddy:alpine AS production-build
 
-COPY --from=build-stage /app/dist /var/www/htdocs
+# Copy the built Vue.js assets into Caddy's default serving directory
+COPY --from=build-stage /app/dist /usr/share/caddy
+
+# Add a Caddyfile to handle SPA routing
+COPY Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 80
+EXPOSE 443
+
+ENTRYPOINT ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]

@@ -1,0 +1,9 @@
+:80 {
+    root * /usr/share/caddy
+    file_server
+
+    # Handle SPA routing by rewriting all requests to index.html
+    handle {
+        try_files {path} /index.html
+    }
+}
