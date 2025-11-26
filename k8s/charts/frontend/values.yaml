@@ -16,12 +16,9 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-staging"
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
   hosts:
     - host: t-hub.ltu-m7011e-4.se
       paths:
         - path: /
           pathType: ImplementationSpecific
-  tls:
-    - secretName: t-hub-tls
-      hosts:
-        - t-hub.ltu-m7011e-4.se

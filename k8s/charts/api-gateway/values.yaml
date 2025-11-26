@@ -18,3 +18,7 @@ resources: # Tmp resource limits, changing later if needed - Dispatch7478
 ingress:
   enabled: true
   host: api.ltu-m7011e-4.se
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
