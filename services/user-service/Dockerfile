@@ -27,7 +27,7 @@ WORKDIR /app
 COPY --from=build /app/user-service .
 
 # Expose the port your service listens on
-EXPOSE 80
+EXPOSE 8080
 
 
 
