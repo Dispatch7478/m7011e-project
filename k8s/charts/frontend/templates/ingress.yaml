@@ -8,6 +8,12 @@ metadata:
   annotations:
     {{- toYaml .Values.ingress.annotations | nindent 4 }}
 spec:
+  tls:
+    - hosts:
+        {{- range .Values.ingress.hosts }}
+        - {{ .host | quote }}
+        {{- end }}
+      secretName: t-hub-tls # Name of the Secret where cert-manager stores the key/cert
   rules:
     {{- range .Values.ingress.hosts }}
     - host: {{ .host | quote }}
