@@ -21,3 +21,11 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
+          service:
+            name: frontend
+            port: 80
+        - path: /api
+          pathType: Prefix
+          service:
+            name: api-gateway
+            port: 80
