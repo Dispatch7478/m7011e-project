@@ -16,7 +16,7 @@ func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *Reg
 
 	// Health Check
 	e.GET("/health", func(c echo.Context) error {
-		return c.String(http.StatusOK, "farting on the moon is healthy")
+		return c.String(http.StatusOK, "demo")
 	})
 
 	// Registration endpoint (public)
