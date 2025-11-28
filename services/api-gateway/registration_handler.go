@@ -39,11 +39,13 @@ func (h *RegistrationHandler) Handle(c echo.Context) error {
 
 	// Register the user in the user-service
 	userServiceReq := struct {
-		ID       string `json:"id"`
+		ID       string `json:"id"` // From Keycloak.
 		Username string `json:"username"`
+		Email    string `json:"email"`
 	}{
 		ID:       userID,
 		Username: req.Username,
+		Email:    req.Email,
 	}
 
 	body, err := json.Marshal(userServiceReq)
@@ -52,12 +54,12 @@ func (h *RegistrationHandler) Handle(c echo.Context) error {
 	}
 
 	resp, err := http.Post(h.UserService+"/register", "application/json", bytes.NewBuffer(body))
-	if err != nil || resp.StatusCode != http.StatusCreated {
+	if err != nil || (resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK) {
 		// Log the detailed error
 		if err != nil {
 			c.Logger().Errorf("Error registering user with user-service: %v", err)
 		} else {
-			c.Logger().Errorf("User-service returned non-201 status: %d", resp.StatusCode)
+			c.Logger().Errorf("User-service returned non-successful status: %d", resp.StatusCode)
 		}
 
 		// Attempt to delete the user from Keycloak if the user-service registration fails
