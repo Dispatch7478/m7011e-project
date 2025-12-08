@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Trigger pipe.
+// Trigger pipe again.
 
 func main() {
 	// 1. Initialize RabbitMQ

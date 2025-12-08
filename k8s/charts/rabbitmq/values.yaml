@@ -9,7 +9,7 @@ image:
 # Configuration for connecting to RabbitMQ
 rabbitmq:
   # The host of the RabbitMQ service. This should be the FQDN of the service in the other namespace.
-  host: "rabbitmq-service.rabbitmq.svc.cluster.local"
+  host: "rabbitmq-service-api.rabbitmq.svc.cluster.local"
   
   # The name of the Kubernetes secret that contains the RabbitMQ credentials.
   # This secret must exist in the same namespace where this chart is deployed (e.g., t-hub-dev).
