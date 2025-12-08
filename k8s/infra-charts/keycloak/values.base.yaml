@@ -25,15 +25,6 @@ keycloak:
     database: keycloak
     username: keycloak
 
-  # Resource limits (optional)
-  resources:
-    limits:
-      cpu: 500m
-      memory: 1Gi
-    requests:
-      cpu: 100m
-      memory: 256Mi
-
 # Ingress configuration
 domain: keycloak.ltu-m7011e-4.se
 email: nahtse-2@student.ltu.se   

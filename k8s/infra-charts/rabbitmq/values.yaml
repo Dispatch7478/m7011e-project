@@ -1,0 +1,8 @@
+# RabbitMQ Configuration
+Image: "rabbitmq:3-management"
+
+auth:
+# The name of the Kubernetes secret that contains the RabbitMQ credentials.
+# This secret must be created manually in the cluster.
+# It should contain two keys: 'rabbitmq-user' and 'rabbitmq-password'.
+  existingSecret: "rabbitmq-credentials"

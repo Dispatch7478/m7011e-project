@@ -16,7 +16,7 @@ func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *Reg
 
 	// Health Check
 	e.GET("/health", func(c echo.Context) error {
-		return c.String(http.StatusOK, "farting on the moon is healthy")
+		return c.String(http.StatusOK, "demo")
 	})
 
 	// Registration endpoint (public)
@@ -28,9 +28,10 @@ func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *Reg
 			e.Logger.Fatal("Invalid service URL: ", err)
 		}
 
-		// Group for protected API routes
-		api := e.Group(service.Proxy.Prefix)
-		api.Use(AuthMiddleware(provider))
+		// Create a more specific, authenticated group for each service
+		groupPath := service.Proxy.Prefix + service.Proxy.Rewrite
+		apiGroup := e.Group(groupPath)
+		apiGroup.Use(AuthMiddleware(provider))
 
 		// Proxy configuration
 		proxyConfig := middleware.ProxyConfig{
@@ -38,12 +39,13 @@ func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *Reg
 				{URL: target},
 			}),
 			Rewrite: map[string]string{
-				service.Proxy.Prefix + "/*": "/$1",
+				// Remove the group path prefix when forwarding.
+				groupPath + "/*": service.Proxy.Rewrite + "/$1",
 			},
 		}
 
-		// Proxy the requests
-		api.Group(service.Proxy.Rewrite, middleware.ProxyWithConfig(proxyConfig))
+		// Proxy the requests for this specific group
+		apiGroup.Use(middleware.ProxyWithConfig(proxyConfig))
 	}
 
 	return e

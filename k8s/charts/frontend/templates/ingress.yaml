@@ -24,9 +24,9 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "frontend.fullname" $ }}
+                name: {{ .service.name }}
                 port:
-                  name: http
+                  number: {{ .service.port }}
           {{- end }}
     {{- end }}
 {{- end }}

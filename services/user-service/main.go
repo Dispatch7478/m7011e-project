@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	// Trigger CI/CD
 	fmt.Println("debug build")
 
 	db := InitDB()
@@ -20,7 +21,7 @@ func main() {
 	r.HandleFunc("/health", h.Health).Methods("GET")
 
 	// user endpoints
-	r.HandleFunc("/users", h.CreateUser).Methods("POST")
+	r.HandleFunc("/register", h.CreateUser).Methods("POST")
 	r.HandleFunc("/users/{id}", h.GetUser).Methods("GET")
 
 	log.Println("User Service running on :8080")

@@ -17,9 +17,9 @@ func main() {
 	}
 
 	// Configuration via environment variables
-	keycloakURL := getEnv("KEYCLOAK_URL", "https://keycloak.ltu-m7011e-4.se")
+	keycloakURL := getEnv("KEYCLOAK_URL", "")
 	keycloakRealm := getEnv("KEYCLOAK_REALM", "t-hub")
-	userServiceURL := getEnv("USER_SERVICE_URL", "http://user-service:8080")
+	userServiceURL := getEnv("USER_SERVICE_URL", "")
 	port := getEnv("PORT", ":8080")
 
 	// Create a custom HTTP client that skips TLS verification

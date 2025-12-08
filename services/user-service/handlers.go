@@ -28,14 +28,16 @@ func (h Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id, created_at;`
+	// Use the ID provided by the api-gateway (from Keycloak)
+	query := `INSERT INTO users (id, username, email) VALUES ($1, $2, $3);`
 
-	err = h.DB.QueryRow(query, u.Username, u.Email).Scan(&u.ID, &u.CreatedAt)
+	_, err = h.DB.Exec(query, u.ID, u.Username, u.Email)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(u)
 }
