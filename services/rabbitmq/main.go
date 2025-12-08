@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+// Trigger pipe.
+
 func main() {
 	// 1. Initialize RabbitMQ
 	rmq, err := Connect()
