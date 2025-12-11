@@ -99,3 +99,7 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 		return c.JSON(http.StatusCreated, t)
 	}
 }
+
+func HealthCheckHandler(c echo.Context) error {
+	return c.String(http.StatusOK, "Tournament Service Healthy")
+}

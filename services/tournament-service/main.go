@@ -34,6 +34,7 @@ func main() {
 
 	// C. Routes
 	e.POST("/tournaments", CreateTournamentHandler(dbPool, rmq))
+	e.GET("/health", HealthCheckHandler)
 
 	// D. Start Server
 	port := "8080"
