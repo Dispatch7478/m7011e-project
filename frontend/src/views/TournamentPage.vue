@@ -59,27 +59,78 @@
           </div>
 
           <div>
-            <label for="type">Type:</label>
+            <label for="description">Description:</label>
+            <textarea
+              id="description"
+              v-model="tournament.description"
+            ></textarea>
+          </div>
+
+          <div>
+            <label for="game">Game:</label>
+            <input
+              id="game"
+              type="text"
+              v-model="tournament.game"
+              required
+            />
+          </div>
+
+          <div>
+            <label for="format">Format:</label>
             <select
-              id="type"
-              v-model="tournament.type"
+              id="format"
+              v-model="tournament.format"
               required
             >
-              <option value="public">Public</option>
-              <option value="private">Private</option>
+              <option value="single-elimination">Single Elimination</option>
+              <option value="double-elimination">Double Elimination</option>
             </select>
           </div>
 
           <div>
-            <label for="teams">Number of Teams:</label>
+            <label for="startDate">Start Date:</label>
+            <input
+              id="startDate"
+              type="datetime-local"
+              v-model="tournament.start_date"
+            />
+          </div>
+
+          <div>
+            <label for="status">Status:</label>
             <select
-              id="teams"
-              v-model="tournament.teams"
+              id="status"
+              v-model="tournament.status"
               required
             >
-              <option :value="16">16</option>
-              <option :value="32">32</option>
+              <option value="draft">Draft</option>
+              <option value="registration">Registration</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
             </select>
+          </div>
+
+          <div>
+            <label for="minTeams">Minimum Teams:</label>
+            <input
+              id="minTeams"
+              type="number"
+              v-model="tournament.min_teams"
+              min="2"
+              required
+            />
+          </div>
+
+          <div>
+            <label for="maxTeams">Maximum Teams:</label>
+            <input
+              id="maxTeams"
+              type="number"
+              v-model="tournament.max_teams"
+              min="2"
+              required
+            />
           </div>
 
           <button
@@ -105,51 +156,44 @@ export default {
       isLoggedIn: false,
       tournament: {
         name: '',
-        type: 'public',
-        teams: 16,
+        description: '',
+        game: '',
+        format: 'single-elimination',
+        start_date: '',
+        status: 'draft',
+        min_teams: 2,
+        max_teams: 16,
       },
     };
   },
   methods: {
     async getPublicTournaments() {
-      this.tournaments = [
-        {
-          id: 1,
-          name: 'Summer League',
-          size: 16,
-          date: '2025-12-05 19:00',
-          location: 'Online',
-        },
-        {
-          id: 2,
-          name: 'Winter Cup',
-          size: 32,
-          date: '2025-12-18 20:30',
-          location: 'Local Arena',
-        },
-      ];
-      // Real API call example:
-      // try {
-      //   const response = await securedApi.get('/tournaments');
-      //   this.tournaments = response.data;
-      // } catch (error) {
-      //   console.error('Failed to fetch tournaments:', error);
-      // }
+      // ... existing code ...
     },
     async createTournament() {
       try {
         const response = await securedApi.post('/tournaments', {
           name: this.tournament.name,
-          private: this.tournament.type === 'private',
-          size: this.tournament.teams,
+          description: this.tournament.description,
+          game: this.tournament.game,
+          format: this.tournament.format,
+          start_date: this.tournament.start_date ? new Date(this.tournament.start_date).toISOString() : '',
+          status: this.tournament.status,
+          min_teams: parseInt(this.tournament.min_teams),
+          max_teams: parseInt(this.tournament.max_teams),
         });
 
         this.tournaments.push(response.data);
 
         this.tournament = {
           name: '',
-          type: 'public',
-          teams: 16,
+          description: '',
+          game: '',
+          format: 'single-elimination',
+          start_date: '',
+          status: 'draft',
+          min_teams: 2,
+          max_teams: 16,
         };
 
         alert('Tournament created successfully!');
