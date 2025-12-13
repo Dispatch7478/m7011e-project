@@ -55,6 +55,13 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Max participants must be a multiple of 2"})
 		}
 
+		// 2. Get Organizer ID from Header
+		organizerID := c.Request().Header.Get("X-User-Id")
+		if organizerID == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing X-User-Id header"})
+		}
+		t.OrganizerID = organizerID
+
 		// 3. Set Server-Side Defaults
 		t.ID = uuid.New().String()
 		t.Status = "draft" // Default status
