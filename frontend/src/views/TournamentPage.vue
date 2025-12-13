@@ -112,22 +112,22 @@
           </div>
 
           <div>
-            <label for="minTeams">Minimum Teams:</label>
+            <label for="minParticipants">Minimum Participants:</label>
             <input
-              id="minTeams"
+              id="minParticipants"
               type="number"
-              v-model="tournament.min_teams"
+              v-model="tournament.min_participants"
               min="2"
               required
             />
           </div>
 
           <div>
-            <label for="maxTeams">Maximum Teams:</label>
+            <label for="maxParticipants">Maximum Participants:</label>
             <input
-              id="maxTeams"
+              id="maxParticipants"
               type="number"
-              v-model="tournament.max_teams"
+              v-model="tournament.max_participants"
               min="2"
               required
             />
@@ -161,8 +161,8 @@ export default {
         format: 'single-elimination',
         start_date: '',
         status: 'draft',
-        min_teams: 2,
-        max_teams: 16,
+        min_participants: 2,
+        max_participants: 16,
       },
     };
   },
@@ -179,8 +179,8 @@ export default {
           format: this.tournament.format,
           start_date: this.tournament.start_date ? new Date(this.tournament.start_date).toISOString() : '',
           status: this.tournament.status,
-          min_teams: parseInt(this.tournament.min_teams),
-          max_teams: parseInt(this.tournament.max_teams),
+          min_participants: parseInt(this.tournament.min_participants),
+          max_participants: parseInt(this.tournament.max_participants),
         });
 
         this.tournaments.push(response.data);
@@ -192,8 +192,8 @@ export default {
           format: 'single-elimination',
           start_date: '',
           status: 'draft',
-          min_teams: 2,
-          max_teams: 16,
+          min_participants: 2,
+          max_participants: 16,
         };
 
         alert('Tournament created successfully!');

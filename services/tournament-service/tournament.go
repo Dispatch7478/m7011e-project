@@ -15,18 +15,17 @@ import (
 // --- Data Models ---
 
 type Tournament struct {
-	ID          string    `json:"id"`
-	OrganizerID string    `json:"organizer_id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Game        string    `json:"game"`
-	Format      string    `json:"format"`
-	StartTime   time.Time `json:"start_time"`
-	ParticipantType string `json:"participant_type"` // "team" or "individual"
-    MinParticipants int    `json:"min_participants"`
-    MaxParticipants int    `json:"max_participants"`
-	// Status is usually managed server-side, not passed in JSON
-	Status      string    `json:"status"` 
+	ID              string    `json:"id"`
+	OrganizerID     string    `json:"organizer_id"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	Game            string    `json:"game"`
+	Format          string    `json:"format"`
+	ParticipantType string    `json:"participant_type"`
+	StartDate       time.Time `json:"start_date"`
+	Status          string    `json:"status"`
+	MinParticipants int       `json:"min_participants"`
+	MaxParticipants int       `json:"max_participants"`
 }
 
 type Event struct {
@@ -44,6 +43,7 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 
 		// 1. Bind (Parse) JSON
 		if err := c.Bind(&t); err != nil {
+			log.Printf("Failed to bind tournament data: %v", err)
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid JSON input"})
 		}
 
@@ -62,12 +62,12 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 		// 4. Insert into PostgreSQL
 		query := `
 			INSERT INTO tournaments 
-			(id, organizer_id, name, description, game, format, start_date, status, min_teams, max_teams)
+			(id, organizer_id, name, description, game, format, start_date, status, min_participants, max_participants)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		`
 		_, err := db.Exec(context.Background(), query,
-			t.ID, t.OrganizerID, t.Name, t.Description, t.Game, 
-			t.Format, t.StartTime, t.Status, t.MinParticipants, t.MaxParticipants,
+			t.ID, t.OrganizerID, t.Name, t.Description, t.Game,
+			t.Format, t.StartDate, t.Status, t.MinParticipants, t.MaxParticipants,
 		)
 
 		if err != nil {
