@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-grafana-datasource
+  labels:
+    app: grafana
+    grafana_datasource: "1"
+data:
+  datasources.yml: |
+    apiVersion: 1
+    datasources:
+      - name: {{ .Values.grafana.datasource.name }}
+        type: {{ .Values.grafana.datasource.type }}
+        access: proxy
+        url: {{ .Values.grafana.datasource.url }}
+        isDefault: true
