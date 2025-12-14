@@ -10,7 +10,7 @@ image:
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "e0f257454a64eb5f20788a37fa5739fece59b052"
+  tag: "3599047b9eddb15e8f46aee78f22570237b3573d"
 database:
   username: "user_service_app"
   password: "user_service_app"
