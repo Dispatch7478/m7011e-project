@@ -34,25 +34,19 @@ func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *Reg
 			e.Logger.Fatal("Invalid service URL: ", err)
 		}
 
-		// Create a more specific, authenticated group for each service
-		groupPath := service.Proxy.Prefix + service.Proxy.Rewrite
-		apiGroup := e.Group(groupPath)
+		apiGroup := e.Group(service.Proxy.Path)
 		apiGroup.Use(AuthMiddleware(provider))
 
-		// Proxy configuration
 		proxyConfig := middleware.ProxyConfig{
 			Balancer: middleware.NewRoundRobinBalancer([]*middleware.ProxyTarget{
 				{URL: target},
 			}),
 			Rewrite: map[string]string{
-				// Handle requests for the exact group path, e.g., /api/tournaments
-				groupPath: service.Proxy.Rewrite,
-				// Handle requests for sub-paths, e.g., /api/tournaments/123
-				groupPath + "/*": service.Proxy.Rewrite + "/$1",
+				service.Proxy.Path + "/*": "/$1",
+				service.Proxy.Path:       "/",
 			},
 		}
 
-		// Proxy the requests for this specific group
 		apiGroup.Use(middleware.ProxyWithConfig(proxyConfig))
 	}
 

@@ -17,8 +17,7 @@ type Service struct {
 }
 
 type Proxy struct {
-	Prefix  string `yaml:"prefix"`
-	Rewrite string `yaml:"rewrite"`
+	Path string `yaml:"path"`
 }
 
 func LoadConfig(path string) (*Config, error) {

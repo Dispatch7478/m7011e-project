@@ -2,10 +2,8 @@ services:
   - name: "user-service"
     url: "http://user-service.t-hub-dev.svc.cluster.local:8080" # Use FQDN for clarity/consistency
     proxy:
-      prefix: "/api"
-      rewrite: "/users"
+      path: "/api/users"
   - name: "tournament-service"
     url: "http://tournament-service.t-hub-dev.svc.cluster.local:8080" # Assuming service named tournament-service
     proxy:
-      prefix: "/api"
-      rewrite: "/tournaments"
+      path: "/api/tournaments"
