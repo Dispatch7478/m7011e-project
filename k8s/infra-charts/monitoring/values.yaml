@@ -19,6 +19,14 @@ prometheus:
     type: ClusterIP
     port: 9090
 
+  additionalScrapeConfigs:
+    - job_name: "user-service"
+      metrics_path: /metrics
+      static_configs:
+        - targets:
+            - "user-service.t-hub-dev.svc.cluster.local:8080"
+
+
 # Grafana Configuration
 grafana:
   enabled: true
