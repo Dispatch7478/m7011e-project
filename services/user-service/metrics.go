@@ -7,18 +7,19 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
-	httpInFlight = prometheus.NewGauge(prometheus.GaugeOpts{
+	httpInFlight = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "userservice",
 		Subsystem: "http",
 		Name:      "in_flight_requests",
 		Help:      "Current number of in-flight HTTP requests.",
 	})
 
-	httpRequestsTotal = prometheus.NewCounterVec(
+	httpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "userservice",
 			Subsystem: "http",
@@ -28,26 +29,16 @@ var (
 		[]string{"method", "route", "code"},
 	)
 
-	httpRequestDuration = prometheus.NewHistogramVec(
+	httpRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "userservice",
 			Subsystem: "http",
 			Name:      "request_duration_seconds",
 			Help:      "Duration of HTTP requests in seconds.",
-			// Default buckets are usually fine for a student project.
 		},
 		[]string{"method", "route", "code"},
 	)
 )
-
-func init() {
-	// “Common” runtime metrics
-	prometheus.MustRegister(prometheus.NewGoCollector())
-	prometheus.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
-
-	// Your HTTP metrics
-	prometheus.MustRegister(httpInFlight, httpRequestsTotal, httpRequestDuration)
-}
 
 type statusRecorder struct {
 	http.ResponseWriter
@@ -59,10 +50,8 @@ func (r *statusRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
-// Prometheus metrics middleware for gorilla/mux
 func metricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Optional: avoid measuring the metrics endpoint itself
 		if r.URL.Path == "/metrics" {
 			next.ServeHTTP(w, r)
 			return
