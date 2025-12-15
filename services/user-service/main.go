@@ -16,6 +16,7 @@ func main() {
 	h := Handler{DB: db}
 
 	r := mux.NewRouter()
+	r.Use(metricsMiddleware)
 
 	// public endpoints
 	r.HandleFunc("/health", h.Health).Methods("GET")
@@ -23,6 +24,9 @@ func main() {
 	// user endpoints
 	r.HandleFunc("/register", h.CreateUser).Methods("POST")
 	r.HandleFunc("/users/{id}", h.GetUser).Methods("GET")
+
+	// metrics endpoint
+	r.Handle("/metrics", metricsHandler()).Methods("GET")
 
 	log.Println("User Service running on :8080")
 	if err := http.ListenAndServe(":8080", r); err != nil {
