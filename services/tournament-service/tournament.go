@@ -59,6 +59,7 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 		if t.MaxParticipants < 2 || t.MaxParticipants > 16 {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Max participants must be between 2 and 16"})
 		}
+		// Can fix later to add byes etc.
 		if t.MaxParticipants%2 != 0 {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Max participants must be a multiple of 2"})
 		}
@@ -103,12 +104,47 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 			log.Printf("ERROR: Failed to publish event: %v", err)
 			// Decide if this is fatal. For now, we log it but still return success for the DB save.
 		}
+			// 6. Return Success
+			return c.JSON(http.StatusCreated, t)
+		}
+}
 
-		// 6. Return Success
-		return c.JSON(http.StatusCreated, t)
+		
+
+func GetAllTournamentsHandler(db *pgxpool.Pool) echo.HandlerFunc {
+
+	return func(c echo.Context) error {
+		query :=`
+			SELECT id, organizer_id, name, description, game, format, start_date, status, min_participants, max_participants, public
+			FROM tournaments
+			WHERE public = true
+		`
+
+		rows, err := db.Query(context.Background(), query)
+
+		if err != nil {
+			log.Printf("Database Query Error: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch tournaments"})
+		}
+		defer rows.Close()
+
+		var tournaments []Tournament
+
+		for rows.Next() {
+			var t Tournament
+
+			err := rows.Scan(&t.ID, &t.OrganizerID, &t.Name, &t.Description, &t.Game, &t.Format, &t.StartDate, &t.Status, &t.MinParticipants, &t.MaxParticipants, &t.Public)
+			if err != nil {
+				log.Printf("Row Scan Error: %v", err)
+				return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to process tournaments"})
+			}
+			tournaments = append(tournaments, t)
+		}
+		return c.JSON(http.StatusOK, tournaments)
 	}
 }
 
+
 func HealthCheckHandler(c echo.Context) error {
 	return c.String(http.StatusOK, "Tournament Service Healthy")
-}
+}		

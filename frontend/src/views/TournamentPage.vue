@@ -24,7 +24,7 @@
                 {{ tournament.name }}
               </h3>
               <p class="tournament-meta">
-                <span>{{ tournament.size }} teams</span>
+                <span>{{ tournament.max_participants }} participants</span>
               </p>
             </div>
 
@@ -179,8 +179,14 @@ export default {
     };
   },
   methods: {
-    async getPublicTournaments() {
-      // ... existing code ...
+    async getTournaments() {
+      try {
+        const response = await securedApi.get('/api/tournaments');
+        this.tournaments = response.data;
+      } catch (error) {
+        console.error('Failed to fetch tournaments:', error);
+        alert('Failed to fetch tournaments.');
+      }
     },
     async createTournament() {
       try {
@@ -222,7 +228,7 @@ export default {
   },
   created() {
     this.isLoggedIn = this.$keycloak && this.$keycloak.authenticated;
-    this.getPublicTournaments();
+    this.getTournaments();
   },
 };
 </script>
