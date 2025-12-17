@@ -26,6 +26,7 @@ type Tournament struct {
 	Status          string    `json:"status"`
 	MinParticipants int       `json:"min_participants"`
 	MaxParticipants int       `json:"max_participants"`
+	Public          bool      `json:"public"`
 }
 
 type Event struct {
@@ -47,6 +48,13 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid JSON input"})
 		}
 
+		// 2. Get Organizer ID from Header
+		organizerID := c.Request().Header.Get("X-User-Id")
+		if organizerID == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing X-User-Id header"})
+		}
+		t.OrganizerID = organizerID
+
 		// Validating "Power of 2" for participants
 		if t.MaxParticipants < 2 || t.MaxParticipants > 16 {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Max participants must be between 2 and 16"})
@@ -55,26 +63,20 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Max participants must be a multiple of 2"})
 		}
 
-		// 2. Get Organizer ID from Header
-		organizerID := c.Request().Header.Get("X-User-Id")
-		if organizerID == "" {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing X-User-Id header"})
-		}
-		t.OrganizerID = organizerID
-
 		// 3. Set Server-Side Defaults
 		t.ID = uuid.New().String()
 		t.Status = "draft" // Default status
+		t.Public = true    // Default to public
 
 		// 4. Insert into PostgreSQL
 		query := `
 			INSERT INTO tournaments 
-			(id, organizer_id, name, description, game, format, start_date, status, min_participants, max_participants)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			(id, organizer_id, name, description, game, format, start_date, status, min_participants, max_participants, public)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		`
 		_, err := db.Exec(context.Background(), query,
 			t.ID, t.OrganizerID, t.Name, t.Description, t.Game,
-			t.Format, t.StartDate, t.Status, t.MinParticipants, t.MaxParticipants,
+			t.Format, t.StartDate, t.Status, t.MinParticipants, t.MaxParticipants, t.Public,
 		)
 
 		if err != nil {

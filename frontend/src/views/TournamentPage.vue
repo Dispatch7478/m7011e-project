@@ -133,6 +133,17 @@
             />
           </div>
 
+          <div>
+            <label for="public">
+              <input
+                id="public"
+                type="checkbox"
+                v-model="tournament.public"
+              />
+              Public Tournament
+            </label>
+          </div>
+
           <button
             type="submit"
             class="btn primary-btn"
@@ -163,6 +174,7 @@ export default {
         status: 'draft',
         min_participants: 2,
         max_participants: 16,
+        public: true,
       },
     };
   },
@@ -181,6 +193,7 @@ export default {
           status: this.tournament.status,
           min_participants: parseInt(this.tournament.min_participants),
           max_participants: parseInt(this.tournament.max_participants),
+          public: this.tournament.public,
         });
 
         this.tournaments.push(response.data);
@@ -194,6 +207,7 @@ export default {
           status: 'draft',
           min_participants: 2,
           max_participants: 16,
+          public: true,
         };
 
         alert('Tournament created successfully!');

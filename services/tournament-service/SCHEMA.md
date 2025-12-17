@@ -19,8 +19,9 @@ CREATE TABLE tournaments (
     participant_type VARCHAR(20) NOT NULL DEFAULT 'team', -- NEW: 'team' or 'individual'
     start_date TIMESTAMP WITH TIME ZONE,
     status VARCHAR(20) DEFAULT 'draft',
-    min_participants INT DEFAULT 2, -- Renamed from min_teams
-    max_participants INT DEFAULT 16 -- Renamed from max_teams
+    min_participants INT DEFAULT 2,
+    max_participants INT DEFAULT 16,
+    public BOOLEAN DEFAULT true
 );
 ```
 
@@ -35,7 +36,7 @@ A join table that tracks which players have registered for which tournaments.
 ```sql
 CREATE TABLE registrations (
     tournament_id UUID REFERENCES tournaments(id),
-    participant_id UUID NOT NULL, -- Renamed from team_id. Can be a UserID or TeamID.
+    participant_id UUID NOT NULL, -- Can be a UserID or TeamID.
     registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status VARCHAR(20) DEFAULT 'approved',
     PRIMARY KEY (tournament_id, participant_id)
