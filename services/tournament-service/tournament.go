@@ -122,11 +122,11 @@ func RegisterTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing X-User-Name header"})
 		}
 
-		// 1. Check if tournament exists and is public and in 'registration' status
+		// 1. Check if tournament exists, is public, is open for registration, and is not full
 		var t Tournament
 		// Note: pgxpool uses $1, $2, etc. as placeholders for query parameters.
-		query := `SELECT id, status, public FROM tournaments WHERE id = $1`
-		err := db.QueryRow(context.Background(), query, tournamentID).Scan(&t.ID, &t.Status, &t.Public)
+		query := `SELECT id, status, public, max_participants FROM tournaments WHERE id = $1`
+		err := db.QueryRow(context.Background(), query, tournamentID).Scan(&t.ID, &t.Status, &t.Public, &t.MaxParticipants)
 
 		if err != nil {
 			if err.Error() == "no rows in result set" {
@@ -144,7 +144,20 @@ func RegisterTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "Tournament is not open for registration"})
 		}
 
-		// 2. Insert into registrations table
+		// 2. Check if tournament is full
+		var count int
+		countQuery := `SELECT count(*) FROM registrations WHERE tournament_id = $1`
+		err = db.QueryRow(context.Background(), countQuery, tournamentID).Scan(&count)
+		if err != nil {
+			log.Printf("Database Query Error: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check tournament registration count"})
+		}
+
+		if count >= t.MaxParticipants {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "Tournament is full"})
+		}
+
+		// 3. Insert into registrations table
 		// Note: pgxpool uses $1, $2, etc. as placeholders for query parameters.
 		insertQuery := `
 			INSERT INTO registrations (tournament_id, participant_id, participant_name, status)
