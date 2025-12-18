@@ -28,6 +28,14 @@ func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *Reg
 	// Registration endpoint (public)
 	e.POST("/api/register", registrationHandler.Handle)
 
+	var userServiceURL string
+	for _, service := range config.Services {
+		if service.Name == "user-service" {
+			userServiceURL = service.URL
+			break
+		}
+	}
+
 	for _, service := range config.Services {
 		target, err := url.Parse(service.URL)
 		if err != nil {
@@ -35,7 +43,7 @@ func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *Reg
 		}
 
 		apiGroup := e.Group(service.Proxy.Path)
-		apiGroup.Use(AuthMiddleware(provider))
+		apiGroup.Use(AuthMiddleware(provider, userServiceURL))
 
 		proxyConfig := middleware.ProxyConfig{
 			Balancer: middleware.NewRoundRobinBalancer([]*middleware.ProxyTarget{

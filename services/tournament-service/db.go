@@ -15,7 +15,7 @@ func ConnectDB() (*pgxpool.Pool, error) {
 	dbPass := os.Getenv("DB_PASS")
 	dbHost := os.Getenv("DB_HOST") // e.g. "postgres-service.db.svc.cluster.local"
 	dbName := os.Getenv("DB_NAME")
-	
+
 	if dbUser == "" || dbHost == "" {
 		return nil, fmt.Errorf("DB_USER and DB_HOST must be set")
 	}

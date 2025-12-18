@@ -84,7 +84,7 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 			log.Printf("Database Insert Error: %v", err)
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save tournament"})
 		}
-		
+
 		log.Printf("PERSISTED: Tournament '%s' (ID: %s)", t.Name, t.ID)
 
 		// 5. Publish Event to RabbitMQ
@@ -104,17 +104,69 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 			log.Printf("ERROR: Failed to publish event: %v", err)
 			// Decide if this is fatal. For now, we log it but still return success for the DB save.
 		}
-			// 6. Return Success
-			return c.JSON(http.StatusCreated, t)
-		}
+		// 6. Return Success
+		return c.JSON(http.StatusCreated, t)
+	}
 }
 
-		
+func RegisterTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tournamentID := c.Param("id")
+		participantID := c.Request().Header.Get("X-User-Id")
+		participantName := c.Request().Header.Get("X-User-Name")
+
+		if participantID == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing X-User-Id header"})
+		}
+		if participantName == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing X-User-Name header"})
+		}
+
+		// 1. Check if tournament exists and is public and in 'registration' status
+		var t Tournament
+		// Note: pgxpool uses $1, $2, etc. as placeholders for query parameters.
+		query := `SELECT id, status, public FROM tournaments WHERE id = $1`
+		err := db.QueryRow(context.Background(), query, tournamentID).Scan(&t.ID, &t.Status, &t.Public)
+
+		if err != nil {
+			if err.Error() == "no rows in result set" {
+				return c.JSON(http.StatusNotFound, map[string]string{"error": "Tournament not found"})
+			}
+			log.Printf("Database Query Error: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check tournament details"})
+		}
+
+		if !t.Public {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "Cannot register for private tournaments this way"})
+		}
+
+		if t.Status != "registration" {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "Tournament is not open for registration"})
+		}
+
+		// 2. Insert into registrations table
+		// Note: pgxpool uses $1, $2, etc. as placeholders for query parameters.
+		insertQuery := `
+			INSERT INTO registrations (tournament_id, participant_id, participant_name, status)
+			VALUES ($1, $2, $3, 'pending')
+		`
+		_, err = db.Exec(context.Background(), insertQuery, tournamentID, participantID, participantName)
+		if err != nil {
+			// Handle duplicate entry error (e.g., user already registered)
+			if err.Error() == "ERROR: duplicate key value violates unique constraint \"registrations_pkey\" (SQLSTATE 23505)" {
+				return c.JSON(http.StatusConflict, map[string]string{"error": "Already registered for this tournament"})
+			}
+			log.Printf("Database Insert Error: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to register for tournament"})
+		}
+
+		return c.JSON(http.StatusCreated, map[string]string{"message": "Successfully registered for tournament"})
+	}
+}
 
 func GetAllTournamentsHandler(db *pgxpool.Pool) echo.HandlerFunc {
-
 	return func(c echo.Context) error {
-		query :=`
+		query := `
 			SELECT id, organizer_id, name, description, game, format, start_date, status, min_participants, max_participants, public
 			FROM tournaments
 			WHERE public = true
@@ -144,7 +196,6 @@ func GetAllTournamentsHandler(db *pgxpool.Pool) echo.HandlerFunc {
 	}
 }
 
-
 func HealthCheckHandler(c echo.Context) error {
 	return c.String(http.StatusOK, "Tournament Service Healthy")
-}		
+}

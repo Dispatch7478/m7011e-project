@@ -67,8 +67,6 @@ func Connect() (*Service, error) {
 	return &Service{Conn: conn, Channel: ch}, nil
 }
 
-
-
 // Publish sends a message to the configured exchange with a routing key
 
 func (s *Service) Publish(routingKey string, body string) error {

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -8,7 +11,39 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func AuthMiddleware(provider *oidc.Provider) echo.MiddlewareFunc {
+// User represents the structure of a user object from the user-service
+type User struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
+// fetchUserDetails makes a request to the user-service to get user details
+func fetchUserDetails(ctx context.Context, userServiceURL, userID string) (*User, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/users/%s", userServiceURL, userID), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user-service request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call user-service: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("user-service returned non-ok status: %d", resp.StatusCode)
+	}
+
+	var user User
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		return nil, fmt.Errorf("failed to decode user-service response: %w", err)
+	}
+
+	return &user, nil
+}
+
+func AuthMiddleware(provider *oidc.Provider, userServiceURL string) echo.MiddlewareFunc {
 	verifier := provider.Verifier(&oidc.Config{
 		SkipClientIDCheck: true, // We trust the issuer (Keycloak), any client is fine
 	})
@@ -37,9 +72,14 @@ func AuthMiddleware(provider *oidc.Provider) echo.MiddlewareFunc {
 			// This is the unique ID from Keycloak (e.g., a UUID)
 			userID := idToken.Subject
 
-			// Inject Header for downstream service
-			// The User Service will trust this header
+			user, err := fetchUserDetails(c.Request().Context(), userServiceURL, userID)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch user details: "+err.Error())
+			}
+
+			// Inject Headers for downstream service
 			c.Request().Header.Set("X-User-Id", userID)
+			c.Request().Header.Set("X-User-Name", user.Username)
 
 			return next(c)
 		}

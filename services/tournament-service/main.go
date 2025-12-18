@@ -1,9 +1,9 @@
 package main
 
 import (
-	"log"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"log"
 )
 
 // --- Main Entrypoint ---
@@ -27,7 +27,7 @@ func main() {
 
 	// B. Setup Echo
 	e := echo.New()
-	
+
 	// Middleware (Logging, Recover)
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
