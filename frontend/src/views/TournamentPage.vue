@@ -24,10 +24,9 @@
                 {{ tournament.name }}
               </h3>
               <p class="tournament-meta">
-                <span>{{ tournament.max_participants }} participants</span>
+                <span>{{ tournament.current_participants }} / {{ tournament.max_participants }} participants</span>
               </p>
             </div>
-
                 <div class="tournament-side">
                   <button
                     type="button"
@@ -37,7 +36,7 @@
                     View Bracket
                   </button>
                   <button
-                    v-if="isLoggedIn && tournament.status === 'registration' && !isRegistered(tournament.id)"
+                    v-if="isLoggedIn && tournament.status === 'registration' && !isRegistered(tournament.id) && tournament.current_participants < tournament.max_participants"
                     type="button"
                     class="btn-link"
                     @click="registerForTournament(tournament.id)"
@@ -45,7 +44,9 @@
                     Register
                   </button>
                   <span v-if="isRegistered(tournament.id)">Registered</span>
-                </div>          </div>
+                  <span v-else-if="tournament.current_participants >= tournament.max_participants" style="color: #dc3545; font-weight: bold;">Full</span>
+                </div>
+              </div>
         </div>
       </div>
     </section>

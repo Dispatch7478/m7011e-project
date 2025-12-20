@@ -37,7 +37,7 @@ A join table that tracks which players have registered for which tournaments.
 CREATE TABLE registrations (
     tournament_id UUID REFERENCES tournaments(id),
     participant_id UUID NOT NULL, -- Can be a UserID or TeamID.
-    participant_name VARCHAR(100) NOT NULL, -- NEW: Store the participant's name
+    participant_name VARCHAR(100) NOT NULL, -- Username or Team name
     registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status VARCHAR(20) DEFAULT 'approved',
     PRIMARY KEY (tournament_id, participant_id)
