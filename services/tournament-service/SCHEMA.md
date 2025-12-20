@@ -16,7 +16,7 @@ CREATE TABLE tournaments (
     description TEXT,
     game VARCHAR(50) NOT NULL, 
     format VARCHAR(20) NOT NULL, -- 'single-elimination', etc.
-    participant_type VARCHAR(20) NOT NULL DEFAULT 'team', -- NEW: 'team' or 'individual'
+    participant_type VARCHAR(20) NOT NULL DEFAULT 'team', -- 'team' or 'individual'
     start_date TIMESTAMP WITH TIME ZONE,
     status VARCHAR(20) DEFAULT 'draft',
     min_participants INT DEFAULT 2,

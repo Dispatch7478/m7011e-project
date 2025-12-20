@@ -184,7 +184,7 @@ func GetAllTournamentsHandler(db *pgxpool.Pool) echo.HandlerFunc {
 			SELECT 
 				t.id, t.organizer_id, t.name, t.description, t.game, t.format, 
 				t.start_date, t.status, t.min_participants, t.max_participants, t.public,
-				COUNT(r.participant_id) as cu
+				COUNT(r.participant_id) as current_participants
 			FROM tournaments t
 			LEFT JOIN registrations r ON t.id = r.tournament_id
 			WHERE t.public = true
