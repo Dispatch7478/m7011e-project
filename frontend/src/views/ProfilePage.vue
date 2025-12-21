@@ -141,17 +141,15 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from "vue";
+import { reactive, ref, computed, onMounted, getCurrentInstance } from "vue";
 
-/**
- * Base profile object – in future you’ll populate this from:
- * - Keycloak token (username/email)
- * - Your backend (team, preferences, etc.)
- */
+const { proxy } = getCurrentInstance();
+const keycloak = proxy.$keycloak;
+
 const profile = reactive({
-  username: "demo.user",
-  email: "demo.user@example.com",
-  team: "Red Team",
+  username: "",
+  email: "",
+  team: "Red Team", // This would typically come from a backend user service
 });
 
 // Local editable copy so you can cancel changes
@@ -179,6 +177,16 @@ const upcomingTournaments = ref([
   },
 ]);
 
+onMounted(() => {
+  if (keycloak && keycloak.authenticated) {
+    if (keycloak.tokenParsed) {
+      profile.username = keycloak.tokenParsed.preferred_username || "";
+      profile.email = keycloak.tokenParsed.email || "";
+      Object.assign(editableProfile, profile); // Update editable profile too
+    }
+  }
+});
+
 // Simple initials for avatar
 const initials = computed(() => {
   if (!editableProfile.username) return "?";
@@ -202,6 +210,7 @@ function cancelEditing() {
 
 function onSave() {
   // In a real app, you’d call your backend API here.
+  // For now, just update the base profile with editable changes
   Object.assign(profile, editableProfile);
   isEditing.value = false;
   console.log("Profile saved (no backend yet):", profile);
@@ -214,7 +223,12 @@ function onSave() {
  * or redirect to your Keycloak account console.
  */
 function onChangePassword() {
-  console.log("Change password clicked (integrate with Keycloak here)");
+  if (keycloak && keycloak.authenticated) {
+    // Redirect to Keycloak's account management console for password changes
+    keycloak.accountManagement();
+  } else {
+    console.log("Not authenticated. Cannot change password.");
+  }
 }
 
 /**
