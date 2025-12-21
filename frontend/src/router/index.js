@@ -4,6 +4,7 @@ import SignupPage from '../views/SignupPage.vue'
 import LoginPage from '../views/LoginPage.vue'
 import ProfilePage from "../views/ProfilePage.vue"
 import TournamentPage from '../views/TournamentPage.vue'
+import CreateTournamentPage from '../views/CreateTournamentPage.vue'
 import BracketPage from '../views/BracketPage.vue'
 const routes = [
   { path: '/',      name: 'Home',   component: HomePage },
@@ -11,6 +12,7 @@ const routes = [
   { path: '/login',  name: 'Login',  component: LoginPage },
   { path: '/profile', name: 'Profile', component: ProfilePage },
   { path: '/tournaments', name: 'Tournaments', component: TournamentPage },
+  { path: '/tournaments/create', name: 'CreateTournament', component: CreateTournamentPage },
   { path: '/tournaments/:id/bracket', name: 'Bracket', component: BracketPage }
 ]
 
