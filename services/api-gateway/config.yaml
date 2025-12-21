@@ -9,3 +9,8 @@ services:
     proxy:
       path: "/api/tournaments"
       rewrite: "/tournaments"
+  - name: "team-service"
+    url: "http://team-service.t-hub-dev.svc.cluster.local:8080"
+    proxy:
+      path: "/api/teams"
+      rewrite: "/teams"
