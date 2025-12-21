@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/dispatch7478/m7011e-project/tournament-service
   pullPolicy: IfNotPresent
-  tag: "7c9747473fd470a86fb02134e87cdce1b551d056"
+  tag: "21b174b02b5d1aa5236d3487ddf90262b43cf01f"
 # Database configuration
 db:
   host: "postgres-service.db.svc.cluster.local"
