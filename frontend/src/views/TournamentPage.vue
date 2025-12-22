@@ -36,7 +36,15 @@
                 <small>{{ tournament.current_participants }} / {{ tournament.max_participants }} filled</small>
               </div>
             </div>
-                <div class="tournament-side">
+                <div class="tournament-actions">
+                  <button
+                    v-if="isLoggedIn"
+                    type="button"
+                    class="btn-link"
+                    @click="selectNewStatus(tournament)"
+                  >
+                    Change Status
+                  </button>
                   <button
                     v-if="['ongoing', 'completed'].includes(tournament.status)"
                     type="button"
@@ -52,7 +60,7 @@
                     && tournament.current_participants < tournament.max_participants"
                     type="button"
                     class="btn-link"
-                    @click="registerForTournament(tournament.id)"
+                    @click="registerForTournament(tournament)"
                   >
                     Register
                   </button>
@@ -136,9 +144,44 @@ export default {
       alert(msg);
     }
   },
-    viewBracket(tournamentId) {
+  viewBracket(tournamentId) {
       this.$router.push({ name: 'Bracket', params: { id: tournamentId } });
     },
+  async selectNewStatus(tournament) {
+    const validStatuses = ['draft', 'registration_open', 'registration_closed', 'ongoing', 'completed', 'cancelled'];
+    const promptMessage = `Enter new status for "${tournament.name}".\n\nValid options: ${validStatuses.join(', ')}`;
+    
+    const newStatus = prompt(promptMessage, tournament.status);
+
+    if (newStatus === null) {
+      // User cancelled the prompt
+      return;
+    }
+
+    if (newStatus.trim() === tournament.status) {
+      // No change
+      return;
+    }
+
+    if (validStatuses.includes(newStatus.trim())) {
+      await this.updateTournamentStatus(tournament.id, newStatus.trim());
+    } else {
+      alert(`Invalid status: "${newStatus}". Please enter one of the valid options.`);
+    }
+  },
+  async updateTournamentStatus(tournamentId, newStatus) {
+    try {
+      await securedApi.patch(`/api/tournaments/${tournamentId}/status`, {
+        status: newStatus
+      });
+      alert("Status updated successfully!");
+      this.getTournaments(); // Refresh the list to show updated status
+    } catch (error) {
+      console.error("Update failed:", error);
+      const msg = error.response?.data?.error || 'Failed to update tournament status.';
+      alert(`Status update failed: ${msg}`);
+    }
+  },
   },
   created() {
     this.isLoggedIn = this.$keycloak && this.$keycloak.authenticated;

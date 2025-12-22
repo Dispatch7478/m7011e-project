@@ -37,6 +37,10 @@ func main() {
 	e.PATCH("/tournaments/:id/status", UpdateTournamentStatusHandler(dbPool, rmq))
 	e.GET("/health", HealthCheckHandler)
 
+	// Creating later for tournament specific edits
+	// e.GET("/api/tournaments/:id", GetTournamentHandler(dbPool))
+	// e.PUT("/api/tournaments/:id", UpdateTournamentDetailsHandler(dbPool, rmq))
+
 	// D. Start Server
 	port := "8080"
 	e.Logger.Fatal(e.Start(":" + port))
