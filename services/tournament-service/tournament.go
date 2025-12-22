@@ -326,3 +326,86 @@ func RegisterTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
 func HealthCheckHandler(c echo.Context) error {
 	return c.String(http.StatusOK, "Tournament Service Healthy")
 }
+
+
+// In tournament.go
+
+// Request struct for status updates
+type UpdateStatusRequest struct {
+	Status string `json:"status"`
+}
+
+// Currently checks Organizer, but easy to expand for "Judges" or "Admins" later.
+func canManageTournament(userID string, t Tournament) bool {
+	// Future: Check if userID exists in a 'judges' table for this tournament
+	return userID == t.OrganizerID
+}
+
+func UpdateTournamentStatusHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tournamentID := c.Param("id")
+		userID := c.Request().Header.Get("X-User-Id")
+
+		if userID == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing authentication"})
+		}
+
+		// 1. Bind Request
+		var req UpdateStatusRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		}
+
+		// Validate Status Enum (Safety check)
+		validStatuses := map[string]bool{
+			"draft": true, "registration_open": true, "registration_closed": true,
+			"ongoing": true, "completed": true, "cancelled": true,
+		}
+		if !validStatuses[req.Status] {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid status value"})
+		}
+
+		// 2. Fetch Tournament (Need OrganizerID to verify permissions)
+		var t Tournament
+		query := `SELECT id, organizer_id, status FROM tournaments WHERE id = $1`
+		err := db.QueryRow(context.Background(), query, tournamentID).Scan(&t.ID, &t.OrganizerID, &t.Status)
+
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Tournament not found"})
+		}
+
+		// 3. Permission Check (Scalable)
+		if !canManageTournament(userID, t) {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "You do not have permission to manage this tournament"})
+		}
+
+		// 4. Update Status in DB
+		updateQuery := `UPDATE tournaments SET status = $1 WHERE id = $2`
+		_, err = db.Exec(context.Background(), updateQuery, req.Status, tournamentID)
+		if err != nil {
+			log.Printf("Database Update Error: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to update status"})
+		}
+
+		// 5. Publish Event (Crucial for Bracket generation or notifying users)
+		// Event: TournamentStatusUpdated
+		eventPayload := map[string]string{
+			"tournament_id": t.ID,
+			"old_status":    t.Status,
+			"new_status":    req.Status,
+			"updated_by":    userID,
+		}
+		event := Event{
+			EventType: "TournamentStatusUpdated",
+			Payload:   eventPayload,
+			Timestamp: time.Now(),
+		}
+		eventBytes, _ := json.Marshal(event)
+		_ = rmq.Publish("events.tournament.status_updated", string(eventBytes))
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"message": "Tournament status updated successfully", 
+			"status": req.Status,
+		})
+	}
+}
