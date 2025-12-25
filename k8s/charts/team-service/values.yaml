@@ -1,19 +1,15 @@
 replicaCount: 1
-
 image:
   repository: ghcr.io/dispatch7478/m7011e-project/team-service
   tag: bd3eeefe103b7e2347a0711759801f4e2702ee4d
   pullPolicy: IfNotPresent
-
 service:
   type: ClusterIP
   port: 80
   targetPort: 8080
-
 database:
   host: "postgres-service.db.svc.cluster.local"
   name: "team_service"
   username: "team_service_app"
-  password: "team_service_app"  # for first deploy; later: use external secret
-
+  password: "team_service_app" # for first deploy; later: use external secret
 resources: {}

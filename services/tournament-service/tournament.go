@@ -409,3 +409,124 @@ func UpdateTournamentStatusHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerF
 		})
 	}
 }
+
+func GetTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tournamentID := c.Param("id")
+		userID := c.Request().Header.Get("X-User-Id")
+
+		// 1. Fetch Tournament
+		var t Tournament
+		query := `
+			SELECT 
+				t.id, t.organizer_id, t.name, COALESCE(t.description, ''), t.game, 
+				t.format, t.participant_type, t.start_date, t.status, 
+				t.min_participants, t.max_participants, t.public,
+				COUNT(r.participant_id) as current_participants
+			FROM tournaments t
+			LEFT JOIN registrations r ON t.id = r.tournament_id
+			WHERE t.id = $1
+			GROUP BY t.id
+		`
+		err := db.QueryRow(context.Background(), query, tournamentID).Scan(
+			&t.ID, &t.OrganizerID, &t.Name, &t.Description, &t.Game,
+			&t.Format, &t.ParticipantType, &t.StartDate, &t.Status, 
+			&t.MinParticipants, &t.MaxParticipants, &t.Public, 
+			&t.CurrentParticipants,
+		)
+
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Tournament not found"})
+		}
+
+		// 2. Security Check
+		// If private, ONLY the organizer (or registered users, optional) can see it.
+		if !t.Public && t.OrganizerID != userID {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "You do not have permission to view this private tournament"})
+		}
+
+		return c.JSON(http.StatusOK, t)
+	}
+}
+
+// Struct for allowed updates (keeps ID/Organizer immutable)
+type UpdateTournamentRequest struct {
+	Name            string     `json:"name"`
+	Description     string     `json:"description"`
+	Game            string     `json:"game"`
+	Format          string     `json:"format"`
+	StartDate       *time.Time `json:"start_date"` // Pointer allows checking for null/missing
+	MinParticipants int        `json:"min_participants"`
+	MaxParticipants int        `json:"max_participants"`
+	Public          bool       `json:"public"`
+}
+
+func UpdateTournamentDetailsHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tournamentID := c.Param("id")
+		userID := c.Request().Header.Get("X-User-Id")
+
+		if userID == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing authentication"})
+		}
+
+		// 1. Bind Request
+		var req UpdateTournamentRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		}
+
+		// 2. Fetch Existing Data (to check permissions & status)
+		var t Tournament
+		query := `SELECT id, organizer_id, status FROM tournaments WHERE id = $1`
+		err := db.QueryRow(context.Background(), query, tournamentID).Scan(&t.ID, &t.OrganizerID, &t.Status)
+
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Tournament not found"})
+		}
+
+		// 3. Permission Check
+		if !canManageTournament(userID, t) {
+			return c.JSON(http.StatusForbidden, map[string]string{"error": "You do not have permission to edit this tournament"})
+		}
+
+		// 4. Safety Checks (Logic Guard)
+		// If tournament is already active/completed, prevent changing Format or Game
+		if (t.Status == "ongoing" || t.Status == "completed") && (req.Format != "" || req.Game != "") {
+			return c.JSON(http.StatusConflict, map[string]string{"error": "Cannot change Game or Format once tournament has started"})
+		}
+
+		// 5. Update Query
+		// Note: This query updates fields only if they are provided (handling partial updates roughly)
+		// For a true PUT, you usually replace all, but here's a robust SQL approach:
+		updateQuery := `
+			UPDATE tournaments SET
+				name = COALESCE(NULLIF($1, ''), name),
+				description = $2,
+				game = COALESCE(NULLIF($3, ''), game),
+				format = COALESCE(NULLIF($4, ''), format),
+				start_date = COALESCE($5, start_date),
+				min_participants = COALESCE(NULLIF($6, 0), min_participants),
+				max_participants = COALESCE(NULLIF($7, 0), max_participants),
+				public = $8
+			WHERE id = $9
+		`
+		
+		_, err = db.Exec(context.Background(), updateQuery,
+			req.Name, req.Description, req.Game, req.Format, 
+			req.StartDate, req.MinParticipants, req.MaxParticipants, req.Public,
+			tournamentID,
+		)
+
+		if err != nil {
+			log.Printf("Update Error: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to update tournament"})
+		}
+
+		// 6. Publish Event
+		// Use a lightweight payload or fetch the full updated object
+		_ = rmq.Publish("events.tournament.updated", `{"id":"`+tournamentID+`", "action":"details_updated"}`)
+
+		return c.JSON(http.StatusOK, map[string]string{"message": "Tournament updated successfully"})
+	}
+}
