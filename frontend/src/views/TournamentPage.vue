@@ -66,6 +66,7 @@
                   </button>
 
                   <span v-if="isRegistered(tournament.id)" class="status-text registered">Registered</span>
+                  <span v-else-if="tournament.status === 'registration_closed'" class="status-text closed">Registrations Closed</span>
                   <span v-else-if="tournament.current_participants >= tournament.max_participants" class="status-text full">Full</span>
                 </div>
               </div>
@@ -370,6 +371,9 @@ input[type='text'], select {
 }
 .status-text.full { color: #dc3545; }
 .status-text.registered { color: #198754; }
+.status-text.closed {
+  color: #ffc107; /* A warning/neutral color, like orange/yellow */
+}
 
 /* Link Buttons */
 .btn-link {

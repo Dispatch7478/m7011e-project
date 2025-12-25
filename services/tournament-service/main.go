@@ -7,15 +7,15 @@ import (
 )
 
 func main() {
-	// A. Connect to Dependencies
-	// 1. Database
+	// Connect to Dependencies
+	// Database
 	dbPool, err := ConnectDB()
 	if err != nil {
 		log.Fatalf("Could not connect to Database: %v", err)
 	}
 	defer dbPool.Close()
 
-	// 2. RabbitMQ
+	// RabbitMQ
 	rmq, err := Connect()
 	if err != nil {
 		log.Fatalf("Could not connect to RabbitMQ: %v", err)
@@ -23,25 +23,27 @@ func main() {
 	defer rmq.Conn.Close()
 	defer rmq.Channel.Close()
 
-	// B. Setup Echo
+	// Setup Echo
 	e := echo.New()
 
 	// Middleware (Logging, Recover)
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	// C. Routes
+	// Routes
+	e.GET("/health", HealthCheckHandler)
+	
 	e.POST("/tournaments", CreateTournamentHandler(dbPool, rmq))
 	e.GET("/tournaments", GetAllTournamentsHandler(dbPool))
+
 	e.POST("/tournaments/:id/register", RegisterTournamentHandler(dbPool))
+	// Updaters
 	e.PATCH("/tournaments/:id/status", UpdateTournamentStatusHandler(dbPool, rmq))
-	e.GET("/health", HealthCheckHandler)
+	e.GET("/api/tournaments/:id", GetTournamentHandler(dbPool))
+	e.PUT("/api/tournaments/:id", UpdateTournamentDetailsHandler(dbPool, rmq))
 
-	// Creating later for tournament specific edits
-	// e.GET("/api/tournaments/:id", GetTournamentHandler(dbPool))
-	// e.PUT("/api/tournaments/:id", UpdateTournamentDetailsHandler(dbPool, rmq))
 
-	// D. Start Server
+	// Start Server
 	port := "8080"
 	e.Logger.Fatal(e.Start(":" + port))
 }
