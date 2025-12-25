@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/dispatch7478/m7011e-project.git
     targetRevision: HEAD
-    path: k8s/charts/team_service # Path to the team_service Helm chart
+    path: k8s/charts/team-service # Path to the team-service Helm chart
   destination:
     server: https://kubernetes.default.svc
     namespace: t-hub-dev
