@@ -10,6 +10,8 @@ service:
 database:
   host: "postgres-service.db.svc.cluster.local"
   name: "team_service"
-  username: "team_service_app"
-  password: "team_service_app" # for first deploy; later: use external secret
+  existingSecret:
+    name: "team-service-db"
+    usernameKey: "DB_USERNAME"
+    passwordKey: "DB_PASSWORD"
 resources: {}
