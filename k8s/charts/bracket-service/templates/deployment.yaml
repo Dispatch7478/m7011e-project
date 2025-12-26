@@ -23,25 +23,31 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
-            # --- Database Config ---
+            # --- Database Config (All from Secret) ---
             - name: DB_HOST
-              value: {{ .Values.db.host | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.existingSecret }}
+                  key: DB_HOST
             - name: DB_PORT
-              value: {{ .Values.db.port | quote }}
+              value: "5432" # Hardcoded atm
             - name: DB_NAME
-              value: {{ .Values.db.name | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.existingSecret }}
+                  key: DB_NAME
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.db.existingSecret }}
-                  key: user
+                  key: DB_USER
             - name: DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.db.existingSecret }}
-                  key: password
+                  key: DB_PASS
 
-            # --- RabbitMQ Config (assuming similar structure to tournament-service) ---
+            # --- RabbitMQ Config ---
             - name: RABBITMQ_HOST
               value: {{ .Values.rabbitmq.host | quote }}
             - name: RABBITMQ_DEFAULT_USER

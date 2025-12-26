@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go app
-RUN CGO_ENABLED=0 GOOS=linux go build -o /tournament-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bracket-service .
 
 # --- Final Stage ---
 # Use a "distroless" image for the final container.
@@ -22,10 +22,10 @@ FROM gcr.io/distroless/static-debian11
 WORKDIR /
 
 # Copy the binary from the builder stage
-COPY --from=builder /tournament-service /tournament-service
+COPY --from=builder /bracket-service /bracket-service
 
 # Expose port 8080 to the outside world
 EXPOSE 8080
 
 # Command to run the executable
-ENTRYPOINT ["/tournament-service"]
+ENTRYPOINT ["/bracket-service"]
