@@ -1,27 +1,22 @@
 replicaCount: 1
-
 image:
   repository: ghcr.io/dispatch7478/m7011e-project/bracket-service
   pullPolicy: IfNotPresent
-  tag: ""
-
+  tag: "747f4675971507fb9a23a7bad205ffb64a9ce01d"
 # Database configuration
 db:
   port: 5432
   # The name of the Kubernetes secret that holds the DB credentials
   # It must have 'user' and 'password' keys
   existingSecret: "bracket-service-db"
-
 rabbitmq:
   host: "rabbitmq-service-api.rabbitmq.svc.cluster.local"
   # The name of the Kubernetes secret that holds the RabbitMQ credentials
   # It must have 'RABBITMQ_DEFAULT_USER' and 'RABBITMQ_DEFAULT_PASS' keys
   auth:
     existingSecret: "rabbitmq-credentials"
-
 env:
   TOURNAMENT_SERVICE_URL: "http://tournament-service.t-hub-dev.svc.cluster.local:8080"
-
 service:
   type: ClusterIP
   port: 8080
