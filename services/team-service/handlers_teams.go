@@ -192,5 +192,104 @@ func (h Handler) DeleteTeam(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h Handler) LeaveTeam(w http.ResponseWriter, r *http.Request) {
+	userID, ok := userIDFromCtx(r.Context())
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	teamID := mux.Vars(r)["id"]
+	if teamID == "" {
+		http.Error(w, "missing team id", http.StatusBadRequest)
+		return
+	}
+
+	// Don’t allow captain to "leave" (avoid orphaned teams)
+	var isCaptain bool
+	if err := h.DB.QueryRow(`
+		SELECT EXISTS(
+			SELECT 1 FROM teams WHERE id = $1::uuid AND captain_id = $2::uuid
+		)`, teamID, userID).Scan(&isCaptain); err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+	if isCaptain {
+		http.Error(w, "captain cannot leave team (delete team or transfer captaincy)", http.StatusForbidden)
+		return
+	}
+
+	// Remove membership
+	res, err := h.DB.Exec(`
+		DELETE FROM team_members
+		WHERE team_id = $1::uuid AND user_id = $2::uuid
+	`, teamID, userID)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		// not a member (or team not found) — choose your semantics:
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h Handler) CaptainRemoveMember(w http.ResponseWriter, r *http.Request) {
+	captainID, ok := userIDFromCtx(r.Context())
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	teamID := mux.Vars(r)["id"]
+	memberID := mux.Vars(r)["userId"]
+	if teamID == "" || memberID == "" {
+		http.Error(w, "missing team id or user id", http.StatusBadRequest)
+		return
+	}
+
+	// Verify caller is captain
+	var isCaptain bool
+	if err := h.DB.QueryRow(`
+		SELECT EXISTS(
+			SELECT 1 FROM teams WHERE id = $1::uuid AND captain_id = $2::uuid
+		)`, teamID, captainID).Scan(&isCaptain); err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+	if !isCaptain {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	// Don’t allow removing the captain (avoid orphaned teams)
+	if memberID == captainID {
+		http.Error(w, "captain cannot remove self via this endpoint", http.StatusBadRequest)
+		return
+	}
+
+	res, err := h.DB.Exec(`
+		DELETE FROM team_members
+		WHERE team_id = $1::uuid AND user_id = $2::uuid
+	`, teamID, memberID)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // Optional helper if you later need role checks
 func isSQLNoRows(err error) bool { return err == sql.ErrNoRows }

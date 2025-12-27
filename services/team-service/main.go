@@ -25,6 +25,7 @@ func main() {
 
 	// public list for front page
 	r.HandleFunc("/teams", h.ListTeams).Methods("GET")
+	r.HandleFunc("/teams/{id}/members", h.ListTeamMembers).Methods("GET")
 
 	// auth subrouter
 	authed := r.PathPrefix("").Subrouter()
@@ -32,12 +33,16 @@ func main() {
 	authed.HandleFunc("/me/teams", h.MyMemberTeams).Methods("GET")
 	authed.HandleFunc("/me/teams/captain", h.MyCaptainTeams).Methods("GET")
 
+	authed.HandleFunc("/teams/{id}/leave", h.LeaveTeam).Methods("POST")
+	authed.HandleFunc("/teams/{id}/members/{userId}", h.CaptainRemoveMember).Methods("DELETE")
+
 	authed.HandleFunc("/teams", h.CreateTeam).Methods("POST")
 	authed.HandleFunc("/teams/{id}", h.DeleteTeam).Methods("DELETE")
 
 	authed.HandleFunc("/teams/{id}/invites", h.CreateInvite).Methods("POST")
 	authed.HandleFunc("/teams/{id}/invites", h.ListInvites).Methods("GET")
 	authed.HandleFunc("/invites/{id}", h.DeleteInvite).Methods("DELETE")
+	authed.HandleFunc("/teams/{id}/members", h.AcceptInviteAndJoinTeam).Methods("POST")
 	// metrics endpoint
 	r.Handle("/metrics", metricsHandler()).Methods("GET")
 
