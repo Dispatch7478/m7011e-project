@@ -46,6 +46,7 @@
                   >
                     Generate Bracket
                   </button>
+
                   <button
                     v-if="isOrganizer(tournament)"
                     type="button"
@@ -54,6 +55,7 @@
                   >
                     Change Status
                   </button>
+
                   <button
                     v-if="['ongoing', 'completed'].includes(tournament.status)"
                     type="button"
@@ -227,7 +229,8 @@ export default {
         alert(`Error: ${msg}`);
       }
     },
-    created() {
+  },
+  created() {
       if (this.$keycloak) {
         this.$keycloak.ready.then(authenticated => {
           this.isLoggedIn = authenticated;
@@ -237,7 +240,6 @@ export default {
         });
       }
     },
-  },
 };
 </script>
 
