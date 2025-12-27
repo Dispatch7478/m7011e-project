@@ -530,3 +530,43 @@ func UpdateTournamentDetailsHandler(db *pgxpool.Pool, rmq *Service) echo.Handler
 		return c.JSON(http.StatusOK, map[string]string{"message": "Tournament updated successfully"})
 	}
 }
+
+func GetParticipantsHandler(db *pgxpool.Pool) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tournamentID := c.Param("id")
+
+		// Query registrations for this tournament
+		// You might want to filter by status='approved' if you implement approval logic later
+		query := `
+			SELECT participant_id, participant_name 
+			FROM registrations 
+			WHERE tournament_id = $1
+		`
+		
+		rows, err := db.Query(context.Background(), query, tournamentID)
+		if err != nil {
+			log.Printf("DB Error: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch participants"})
+		}
+		defer rows.Close()
+
+		// Struct matches the JSON expected by Bracket Service
+		type Participant struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		}
+		
+		participants := []Participant{}
+
+		for rows.Next() {
+			var p Participant
+			if err := rows.Scan(&p.ID, &p.Name); err != nil {
+				log.Printf("Scan Error: %v", err)
+				continue
+			}
+			participants = append(participants, p)
+		}
+
+		return c.JSON(http.StatusOK, participants)
+	}
+}

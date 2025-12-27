@@ -37,6 +37,8 @@ func main() {
 	e.GET("/tournaments", GetAllTournamentsHandler(dbPool))
 
 	e.POST("/tournaments/:id/register", RegisterTournamentHandler(dbPool))
+	e.GET("/tournaments/:id/participants", GetParticipantsHandler(dbPool))
+	
 	// Updaters
 	e.PATCH("/tournaments/:id/status", UpdateTournamentStatusHandler(dbPool, rmq))
 	e.GET("/tournaments/:id", GetTournamentHandler(dbPool))
