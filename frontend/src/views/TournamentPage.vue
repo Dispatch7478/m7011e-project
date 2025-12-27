@@ -108,6 +108,7 @@ export default {
     async getTournaments() {
       try {
         const response = await securedApi.get('/api/tournaments');
+        console.log("Full Response:", response);
         this.tournaments = response.data || [];
       } catch (error) {
         console.error('Failed to fetch tournaments:', error);
