@@ -228,8 +228,14 @@ export default {
       }
     },
     created() {
-      this.isLoggedIn = this.$keycloak && this.$keycloak.authenticated;
-      this.getTournaments();
+      if (this.$keycloak) {
+        this.$keycloak.ready.then(authenticated => {
+          this.isLoggedIn = authenticated;
+          if (authenticated) {
+            this.getTournaments();
+          }
+        });
+      }
     },
   },
 };
