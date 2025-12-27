@@ -33,7 +33,7 @@
               </div>
               
               <div class="participant-count">
-                <small>{{ tournament.current_participants }} / {{ tournament.max_participants }} filled</small>
+                <small>{{ tournament.current_participants }} / {{ tournament.max_participants }} registered</small>
               </div>
             </div>
                 <div class="tournament-actions">
