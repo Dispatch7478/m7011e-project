@@ -50,9 +50,10 @@ func main() {
 	})
 
     // Handler Initialization (We will create this next)
-    // h := &BracketHandler{DB: dbPool, RMQ: rmq, TournamentServiceURL: tournamentServiceURL}
-    // e.POST("/api/brackets/generate", h.GenerateBracket)
-    // e.GET("/api/brackets/:tournamentId", h.GetBracket)
+    h := &BracketHandler{DB: dbPool, RMQ: rmq, TournamentServiceURL: tournamentServiceURL}
+    e.POST("/brackets/generate", h.GenerateBracket)
+    e.GET("/brackets/:tournamentId", h.GetBracket)
+	e.POST("/brackets/matches/:match_id/result", h.UpdateMatchResult)
 
 	port := ":8080"
 	e.Logger.Fatal(e.Start(port))
