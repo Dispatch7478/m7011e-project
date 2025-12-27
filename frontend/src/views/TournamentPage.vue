@@ -55,7 +55,7 @@
                   >
                     Change Status
                   </button>
-
+                  
                   <button
                     v-if="['ongoing', 'completed'].includes(tournament.status)"
                     type="button"
@@ -231,15 +231,15 @@ export default {
     },
   },
   created() {
-      if (this.$keycloak) {
-        this.$keycloak.ready.then(authenticated => {
-          this.isLoggedIn = authenticated;
-          if (authenticated) {
-            this.getTournaments();
-          }
-        });
-      }
-    },
+    if (this.$keycloak) {
+      this.$keycloak.ready.then(authenticated => {
+        this.isLoggedIn = authenticated;
+        if (authenticated) {
+          this.getTournaments();
+        }
+      });
+    }
+  },
 };
 </script>
 
