@@ -102,7 +102,8 @@ export default {
       showScoreModal: false,
       selectedMatch: null,
       scoreA: 0,
-      scoreB: 0
+      scoreB: 0,
+      currentUserId: null,
     };
   },
   computed: {
@@ -204,11 +205,21 @@ export default {
        return match.status === 'completed' && match.winner_id === participantId;
     },
     reportScore(match) {
-      // 1. Prevent clicking on empty/completed matches if needed
+      // 1. Prevent clicking on empty/completed matches
       if (!match.player1_id || !match.player2_id) return;
       if (match.status === 'completed') {
           alert("This match is already completed.");
           return;
+      }
+
+      // Permission check so that only the organizer or players can report scores.
+      const isOrganizer = this.currentUserId === this.tournament.organizer_id;
+      const isPlayerA = this.currentUserId === match.player1_id;
+      const isPlayerB = this.currentUserId === match.player2_id;
+
+      if (!isOrganizer && !isPlayerA && !isPlayerB) {
+        console.log("User is spectator");
+        return; 
       }
 
       this.selectedMatch = match;
@@ -247,6 +258,11 @@ export default {
         console.error("Failed to submit score:", error);
         alert("Failed to submit score.");
       }
+    }
+  },
+  created() {
+    if (this.$keycloak && this.$keycloak.tokenParsed) {
+      this.currentUserId = this.$keycloak.tokenParsed.sub;
     }
   },
   mounted() {
