@@ -11,7 +11,7 @@ import AdminPage from '../views/AdminPage.vue'
 const routes = [
   { path: '/',      name: 'Home',   component: HomePage },
   { path: '/signup', name: 'Signup', component: SignupPage },
-  { path: '  /login',  name: 'Login',  component: LoginPage },
+  { path: '/login',  name: 'Login',  component: LoginPage },
   { path: '/profile', name: 'Profile', component: ProfilePage },
   { path: '/tournaments', name: 'Tournaments', component: TournamentPage },
   { path: '/tournaments/create', name: 'CreateTournament', component: CreateTournamentPage },
