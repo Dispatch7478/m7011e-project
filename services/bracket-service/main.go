@@ -37,12 +37,6 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-    
-    // CORS (Important for Frontend access)
-    e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"https://t-hub.ltu-m7011e-4.se"}, 
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
-	}))
 
 	// 5. Routes
 	e.GET("/health", func(c echo.Context) error {

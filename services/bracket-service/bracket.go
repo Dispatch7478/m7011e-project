@@ -45,7 +45,7 @@ func (h *BracketHandler) GenerateBracket(c echo.Context) error {
 	}
 
 	// 1. Fetch Participants from Tournament Service
-	resp, err := http.Get(fmt.Sprintf("%s/api/tournaments/%s/participants", h.TournamentServiceURL, tournamentID))
+	resp, err := http.Get(fmt.Sprintf("%s/tournaments/%s/participants", h.TournamentServiceURL, tournamentID))
 	if err != nil || resp.StatusCode != 200 {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch participants"})
 	}
