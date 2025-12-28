@@ -29,7 +29,7 @@ prometheus:
       metrics_path: /metrics
       static_configs:
         - targets:
-            - "team-service.t-hub-dev.svc.cluster.local:8080"        
+            - "team-service.t-hub-dev.svc.cluster.local:80"        
 
 
 # Grafana Configuration
