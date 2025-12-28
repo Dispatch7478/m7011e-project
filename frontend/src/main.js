@@ -25,6 +25,16 @@ keycloak
   .init(initOptions)
   .then(authenticated => {
     console.log('Keycloak authenticated:', authenticated)
+    if (authenticated) {
+      if (keycloak.hasRealmRole('SuperAdmin')) {
+        // Find the current route
+        const currentRoute = router.currentRoute.value;
+        // Check if the current route is not already '/admin'
+        if (currentRoute.path !== '/admin') {
+          router.push('/admin');
+        }
+      }
+    }
   })
   .catch(err => {
     console.error('Keycloak initialization failed:', err)
