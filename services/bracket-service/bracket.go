@@ -135,42 +135,8 @@ func (h *BracketHandler) GenerateBracket(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "Bracket generated successfully", "rounds": fmt.Sprintf("%d", rounds)})
 }
 
-func GetParticipantsHandler(db *pgxpool.Pool) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		tournamentID := c.Param("id")
-
-		query := `
-			SELECT participant_id, participant_name 
-			FROM registrations 
-			WHERE tournament_id = $1 AND status = 'approved'
-		`
-		rows, err := db.Query(context.Background(), query, tournamentID)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch participants"})
-		}
-		defer rows.Close()
-
-		type Participant struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		}
-		participants := []Participant{}
-
-		for rows.Next() {
-			var p Participant
-			if err := rows.Scan(&p.ID, &p.Name); err != nil {
-				continue
-			}
-			participants = append(participants, p)
-		}
-
-		return c.JSON(http.StatusOK, participants)
-	}
-}
-
-
 func (h *BracketHandler) GetBracket(c echo.Context) error {
-	tournamentID := c.Param("tournament_id") // Matches the :tournament_id in main.go
+	tournamentID := c.Param("tournamentId") // Matches the :tournament_id in main.go
 
 	// 1. Query Matches
     // We explicitly select columns to match your struct fields
