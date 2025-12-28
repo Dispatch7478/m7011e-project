@@ -6,14 +6,28 @@ import ProfilePage from "../views/ProfilePage.vue"
 import TournamentPage from '../views/TournamentPage.vue'
 import CreateTournamentPage from '../views/CreateTournamentPage.vue'
 import BracketPage from '../views/BracketPage.vue'
+import AdminPage from '../views/AdminPage.vue'
+
 const routes = [
   { path: '/',      name: 'Home',   component: HomePage },
   { path: '/signup', name: 'Signup', component: SignupPage },
-  { path: '/login',  name: 'Login',  component: LoginPage },
+  { path: '  /login',  name: 'Login',  component: LoginPage },
   { path: '/profile', name: 'Profile', component: ProfilePage },
   { path: '/tournaments', name: 'Tournaments', component: TournamentPage },
   { path: '/tournaments/create', name: 'CreateTournament', component: CreateTournamentPage },
-  { path: '/tournaments/:id/bracket', name: 'Bracket', component: BracketPage }
+  { path: '/tournaments/:id/bracket', name: 'Bracket', component: BracketPage },
+  { 
+    path: '/admin',
+    name: 'Admin',
+    component: AdminPage,
+    beforeEnter: (to, from, next) => {
+      if (window.keycloakInstance && window.keycloakInstance.authenticated && window.keycloakInstance.hasRealmRole('SuperAdmin')) {
+        next();
+      } else {
+        next('/');
+      }
+    }
+  }
 ]
 
 const router = createRouter({
