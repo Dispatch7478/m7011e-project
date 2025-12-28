@@ -291,5 +291,38 @@ func (h Handler) CaptainRemoveMember(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h Handler) IsCaptainOfTeam(w http.ResponseWriter, r *http.Request) {
+	userID, ok := userIDFromCtx(r.Context())
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	teamID := mux.Vars(r)["id"]
+	if teamID == "" {
+		http.Error(w, "missing team id", http.StatusBadRequest)
+		return
+	}
+
+	var isCaptain bool
+	err := h.DB.QueryRow(`
+		SELECT EXISTS(
+			SELECT 1
+			FROM teams
+			WHERE id = $1::uuid AND captain_id = $2::uuid
+		)
+	`, teamID, userID).Scan(&isCaptain)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"team_id":    teamID,
+		"is_captain": isCaptain,
+	})
+}
+
 // Optional helper if you later need role checks
 func isSQLNoRows(err error) bool { return err == sql.ErrNoRows }
