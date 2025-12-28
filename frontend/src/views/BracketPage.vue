@@ -164,7 +164,7 @@ export default {
           .filter(m => m.match_number > mid)
           .sort((a,b) => a.match_number - b.match_number); // Ascending order
         return {...round, matches: rightMatches};
-      }).reverse(); // Reverse round order for Right side (Semifinal -> Round 1)
+      }); // Right side should not be reversed here (testing)
     },
     finalRound() {
       if (this.rounds.length === 0) return null;
