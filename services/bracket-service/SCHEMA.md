@@ -1,11 +1,12 @@
 # Bracket Service Schema
 
-## Database: `bracket_db`
+## Database: `bracket_service`
 
 ### `matches` Table
-Stores the nodes of the bracket tree.
+Stores the nodes of the bracket tree, including scores and results.
 
 ```sql
+
 CREATE TABLE matches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tournament_id UUID NOT NULL,
@@ -19,8 +20,11 @@ CREATE TABLE matches (
     player1_id UUID,                 -- NULL if waiting for previous round
     player2_id UUID,                 -- NULL if waiting OR if it's a Bye
     
-    -- State
+    -- Result Info (New Columns)
     winner_id UUID,                  -- Set when match is over
-    score VARCHAR(50),               -- e.g., "3-1", "2-0"
+    score_a VARCHAR(10),             -- e.g. "3" or "2"
+    score_b VARCHAR(10),             -- e.g. "1" or "0"
+    
+    -- State
     status VARCHAR(20) DEFAULT 'scheduled' -- scheduled, in_progress, completed
 );
