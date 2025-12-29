@@ -39,6 +39,8 @@ func main() {
 	authed.HandleFunc("/teams", h.CreateTeam).Methods("POST")
 	authed.HandleFunc("/teams/{id}", h.DeleteTeam).Methods("DELETE")
 
+	authed.HandleFunc("/teams/{id}/is-captain", h.IsCaptainOfTeam).Methods("GET")
+
 	authed.HandleFunc("/teams/{id}/invites", h.CreateInvite).Methods("POST")
 	authed.HandleFunc("/teams/{id}/invites", h.ListInvites).Methods("GET")
 	authed.HandleFunc("/invites/{id}", h.DeleteInvite).Methods("DELETE")

@@ -2,6 +2,7 @@
   <nav class="navbar">
     <router-link to="/" class="nav-item">Home</router-link>
     <router-link v-if="$keycloak && $keycloak.authenticated" to="/tournaments" class="nav-item">Tournaments</router-link>
+    <router-link v-if="$keycloak && $keycloak.authenticated && $keycloak.hasRealmRole('SuperAdmin')" to="/admin" class="nav-item">Admin</router-link>
     <router-link v-if="!$keycloak || !$keycloak.authenticated" to="/signup" class="nav-item">Sign Up</router-link>
 
     <router-link v-if="$keycloak && $keycloak.authenticated" to="/profile" class="nav-item">Profile</router-link>

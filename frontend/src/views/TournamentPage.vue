@@ -30,6 +30,12 @@
                 <span class="badge" :class="tournament.participant_type">
                   {{ tournament.participant_type }}
                 </span>
+                <span class="separator">•</span>
+                <span class="tournament-date">{{ formatDate(tournament.start_date) }}</span>
+                <span class="separator">•</span>
+                <span class="tournament-status" :class="`status-${tournament.status.toLowerCase().replace('_', '-')}`">
+                  {{ tournament.status.replace(/_/g, ' ') }}
+                </span>
               </div>
               
               <div class="participant-count">
@@ -48,7 +54,7 @@
                   </button>
 
                   <button
-                    v-if="isOrganizer(tournament)"
+                    v-if="($keycloak && $keycloak.authenticated && $keycloak.hasRealmRole('SuperAdmin')) || (isOrganizer(tournament))"
                     type="button"
                     class="btn-link"
                     @click="selectNewStatus(tournament)"
@@ -229,6 +235,10 @@ export default {
         alert(`Error: ${msg}`);
       }
     },
+    formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    },
   },
   created() {
     this.isLoggedIn = this.$keycloak && this.$keycloak.authenticated;
@@ -408,6 +418,28 @@ input[type='text'], select {
 .status-text.closed {
   color: #ffc107; /* A warning/neutral color, like orange/yellow */
 }
+
+/* Added styles for Start Date and Status */
+.tournament-date {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.tournament-status {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: capitalize;
+  font-size: 0.8rem;
+}
+
+.tournament-status.status-draft { background-color: #e0e0e0; color: #424242; }
+.tournament-status.status-registration-open { background-color: #d4edda; color: #155724; }
+.tournament-status.status-registration-closed { background-color: #fff3cd; color: #856404; }
+.tournament-status.status-ongoing { background-color: #cce5ff; color: #004085; }
+.tournament-status.status-completed { background-color: #d1ecf1; color: #0c5460; }
+.tournament-status.status-cancelled { background-color: #f8d7da; color: #721c24; }
 
 /* Link Buttons */
 .btn-link {
