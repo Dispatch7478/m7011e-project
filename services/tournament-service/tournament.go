@@ -1,10 +1,9 @@
-package main
-
 import (
 	"context"
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -335,16 +334,26 @@ type UpdateStatusRequest struct {
 	Status string `json:"status"`
 }
 
-// Currently checks Organizer, but easy to expand for "Judges" or "Admins" later.
-func canManageTournament(userID string, t Tournament) bool {
-	// Future: Check if userID exists in a 'judges' table for this tournament
+// Now checks for Organizer OR SuperAdmin role
+func canManageTournament(userID string, userRoles string, t Tournament) bool {
+	// 1. Check for SuperAdmin role
+	roles := strings.Split(userRoles, ",")
+	for _, role := range roles {
+		if strings.TrimSpace(role) == "SuperAdmin" {
+			return true
+		}
+	}
+
+	// 2. Fallback to Organizer check
 	return userID == t.OrganizerID
 }
+
 
 func UpdateTournamentStatusHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		tournamentID := c.Param("id")
 		userID := c.Request().Header.Get("X-User-Id")
+		userRoles := c.Request().Header.Get("X-User-Roles") // Get roles
 
 		if userID == "" {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing authentication"})
@@ -375,7 +384,7 @@ func UpdateTournamentStatusHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerF
 		}
 
 		// 3. Permission Check (Scalable)
-		if !canManageTournament(userID, t) {
+		if !canManageTournament(userID, userRoles, t) { // Pass roles
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "You do not have permission to manage this tournament"})
 		}
 
@@ -465,6 +474,7 @@ func UpdateTournamentDetailsHandler(db *pgxpool.Pool, rmq *Service) echo.Handler
 	return func(c echo.Context) error {
 		tournamentID := c.Param("id")
 		userID := c.Request().Header.Get("X-User-Id")
+		userRoles := c.Request().Header.Get("X-User-Roles")
 
 		if userID == "" {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing authentication"})
@@ -486,7 +496,7 @@ func UpdateTournamentDetailsHandler(db *pgxpool.Pool, rmq *Service) echo.Handler
 		}
 
 		// 3. Permission Check
-		if !canManageTournament(userID, t) {
+		if !canManageTournament(userID, userRoles, t) {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "You do not have permission to edit this tournament"})
 		}
 

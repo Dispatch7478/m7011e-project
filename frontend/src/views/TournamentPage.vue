@@ -48,7 +48,7 @@
                   </button>
 
                   <button
-                    v-if="isOrganizer(tournament)"
+                    v-if="($keycloak && $keycloak.authenticated && $keycloak.hasRealmRole('SuperAdmin')) || (isOrganizer(tournament))"
                     type="button"
                     class="btn-link"
                     @click="selectNewStatus(tournament)"
