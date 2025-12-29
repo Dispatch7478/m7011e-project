@@ -242,8 +242,6 @@ func RegisterTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 		}
 		
-		
-
 		// 2. Fetch Tournament Details (Now including participant_type)
 		var t Tournament
 		query := `SELECT id, status, public, max_participants, participant_type FROM tournaments WHERE id = $1`
@@ -277,13 +275,10 @@ func RegisterTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
 		var participantID string
 
 		if t.ParticipantType == "team" {
-			// if req.TeamID == "" {
-			// 	return c.JSON(http.StatusBadRequest, map[string]string{"error": "This is a team tournament. Team ID is required."})
-			// }
-			// participantID = req.TeamID
-			return c.JSON(http.StatusNotImplemented, map[string]string{
-                "error": "Team registration is not implemented",
-			})
+			if req.TeamID == "" {
+				return c.JSON(http.StatusBadRequest, map[string]string{"error": "This is a team tournament. Team ID is required."})
+			}
+			participantID = req.TeamID
 		} else {
 			// Default to Individual
 			participantID = userID
