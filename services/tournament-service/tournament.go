@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -109,70 +110,6 @@ func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 		return c.JSON(http.StatusCreated, t)
 	}
 }
-
-// func RegisterTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
-// 	return func(c echo.Context) error {
-// 		tournamentID := c.Param("id")
-// 		participantID := c.Request().Header.Get("X-User-Id")
-
-// 		if participantID == "" {
-// 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing X-User-Id header"})
-// 		}
-
-// 		// 1. Check if tournament exists, is public, is open for registration, and is not full
-// 		var t Tournament
-// 		// Note: pgxpool uses $1, $2, etc. as placeholders for query parameters.
-// 		query := `SELECT id, status, public, max_participants FROM tournaments WHERE id = $1`
-// 		err := db.QueryRow(context.Background(), query, tournamentID).Scan(&t.ID, &t.Status, &t.Public, &t.MaxParticipants)
-
-// 		if err != nil {
-// 			if err.Error() == "no rows in result set" {
-// 				return c.JSON(http.StatusNotFound, map[string]string{"error": "Tournament not found"})
-// 			}
-// 			log.Printf("Database Query Error: %v", err)
-// 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check tournament details"})
-// 		}
-
-// 		if !t.Public {
-// 			return c.JSON(http.StatusForbidden, map[string]string{"error": "Cannot register for private tournaments this way"})
-// 		}
-
-// 		if t.Status != "registration" {
-// 			return c.JSON(http.StatusForbidden, map[string]string{"error": "Tournament is not open for registration"})
-// 		}
-
-// 		// 2. Check if tournament is full
-// 		var count int
-// 		countQuery := `SELECT count(*) FROM registrations WHERE tournament_id = $1`
-// 		err = db.QueryRow(context.Background(), countQuery, tournamentID).Scan(&count)
-// 		if err != nil {
-// 			log.Printf("Database Query Error: %v", err)
-// 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check tournament registration count"})
-// 		}
-
-// 		if count >= t.MaxParticipants {
-// 			return c.JSON(http.StatusForbidden, map[string]string{"error": "Tournament is full"})
-// 		}
-
-// 		// 3. Insert into registrations table
-// 		// Note: pgxpool uses $1, $2, etc. as placeholders for query parameters.
-// 		insertQuery := `
-// 			INSERT INTO registrations (tournament_id, participant_id, participant_name, status)
-// 			VALUES ($1, $2, $3, 'pending')
-// 		`
-// 		_, err = db.Exec(context.Background(), insertQuery, tournamentID, participantID, participantName)
-// 		if err != nil {
-// 			// Handle duplicate entry error (e.g., user already registered)
-// 			if err.Error() == "ERROR: duplicate key value violates unique constraint \"registrations_pkey\" (SQLSTATE 23505)" {
-// 				return c.JSON(http.StatusConflict, map[string]string{"error": "Already registered for this tournament"})
-// 			}
-// 			log.Printf("Database Insert Error: %v", err)
-// 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to register for tournament"})
-// 		}
-
-// 		return c.JSON(http.StatusCreated, map[string]string{"message": "Successfully registered for tournament"})
-// 	}
-// }
 
 type RegistrationRequest struct {
 	TeamID string `json:"team_id"` // Optional: Only for team tournaments
@@ -330,16 +267,26 @@ type UpdateStatusRequest struct {
 	Status string `json:"status"`
 }
 
-// Currently checks Organizer, but easy to expand for "Judges" or "Admins" later.
-func canManageTournament(userID string, t Tournament) bool {
-	// Future: Check if userID exists in a 'judges' table for this tournament
+// Now checks for Organizer OR SuperAdmin role
+func canManageTournament(userID string, userRoles string, t Tournament) bool {
+	// 1. Check for SuperAdmin role
+	roles := strings.Split(userRoles, ",")
+	for _, role := range roles {
+		if strings.TrimSpace(role) == "SuperAdmin" {
+			return true
+		}
+	}
+
+	// 2. Fallback to Organizer check
 	return userID == t.OrganizerID
 }
+
 
 func UpdateTournamentStatusHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		tournamentID := c.Param("id")
 		userID := c.Request().Header.Get("X-User-Id")
+		userRoles := c.Request().Header.Get("X-User-Roles") // Get roles
 
 		if userID == "" {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing authentication"})
@@ -370,7 +317,7 @@ func UpdateTournamentStatusHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerF
 		}
 
 		// 3. Permission Check (Scalable)
-		if !canManageTournament(userID, t) {
+		if !canManageTournament(userID, userRoles, t) { // Pass roles
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "You do not have permission to manage this tournament"})
 		}
 
@@ -460,6 +407,7 @@ func UpdateTournamentDetailsHandler(db *pgxpool.Pool, rmq *Service) echo.Handler
 	return func(c echo.Context) error {
 		tournamentID := c.Param("id")
 		userID := c.Request().Header.Get("X-User-Id")
+		userRoles := c.Request().Header.Get("X-User-Roles")
 
 		if userID == "" {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing authentication"})
@@ -481,7 +429,7 @@ func UpdateTournamentDetailsHandler(db *pgxpool.Pool, rmq *Service) echo.Handler
 		}
 
 		// 3. Permission Check
-		if !canManageTournament(userID, t) {
+		if !canManageTournament(userID, userRoles, t) {
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "You do not have permission to edit this tournament"})
 		}
 
