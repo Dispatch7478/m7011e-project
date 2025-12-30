@@ -53,14 +53,13 @@
                     Generate Bracket
                   </button>
 
-                  <button
+                  <router-link
                     v-if="($keycloak && $keycloak.authenticated && $keycloak.hasRealmRole('SuperAdmin')) || (isOrganizer(tournament))"
-                    type="button"
+                    :to="{ name: 'ChangeTournament', params: { id: tournament.id } }"
                     class="btn-link"
-                    @click="selectNewStatus(tournament)"
                   >
-                    Change Status
-                  </button>
+                    Settings
+                  </router-link>
                   
                   <button
                     v-if="['ongoing', 'completed'].includes(tournament.status)"
@@ -166,41 +165,6 @@ export default {
     viewBracket(tournamentId) {
         this.$router.push({ name: 'Bracket', params: { id: tournamentId } });
       },
-    async selectNewStatus(tournament) {
-      const validStatuses = ['draft', 'registration_open', 'registration_closed', 'ongoing', 'completed', 'cancelled'];
-      const promptMessage = `Enter new status for "${tournament.name}".\n\nValid options: ${validStatuses.join(', ')}`;
-      
-      const newStatus = prompt(promptMessage, tournament.status);
-
-      if (newStatus === null) {
-        // User cancelled the prompt
-        return;
-      }
-
-      if (newStatus.trim() === tournament.status) {
-        // No change
-        return;
-      }
-
-      if (validStatuses.includes(newStatus.trim())) {
-        await this.updateTournamentStatus(tournament.id, newStatus.trim());
-      } else {
-        alert(`Invalid status: "${newStatus}". Please enter one of the valid options.`);
-      }
-    },
-    async updateTournamentStatus(tournamentId, newStatus) {
-      try {
-        await securedApi.patch(`/api/tournaments/${tournamentId}/status`, {
-          status: newStatus
-        });
-        alert("Status updated successfully!");
-        this.getTournaments(); // Refresh the list to show updated status
-      } catch (error) {
-        console.error("Update failed:", error);
-        const msg = error.response?.data?.error || 'Failed to update tournament status.';
-        alert(`Status update failed: ${msg}`);
-      }
-    },
     isOrganizer(tournament) {
       // 1. Check if user is logged in
       if (!this.isLoggedIn || !this.$keycloak.tokenParsed) {

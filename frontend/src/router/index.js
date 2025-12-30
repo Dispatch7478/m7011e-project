@@ -6,6 +6,7 @@ import ProfilePage from "../views/ProfilePage.vue"
 import TournamentPage from '../views/TournamentPage.vue'
 import CreateTournamentPage from '../views/CreateTournamentPage.vue'
 import BracketPage from '../views/BracketPage.vue'
+import ChangeTournamentPage from '../views/ChangeTournamentPage.vue'
 import AdminPage from '../views/AdminPage.vue'
 
 const routes = [
@@ -16,6 +17,7 @@ const routes = [
   { path: '/tournaments', name: 'Tournaments', component: TournamentPage },
   { path: '/tournaments/create', name: 'CreateTournament', component: CreateTournamentPage },
   { path: '/tournaments/:id/bracket', name: 'Bracket', component: BracketPage },
+  { path: '/tournaments/:id/edit', name: 'ChangeTournament', component: ChangeTournamentPage },
   { 
     path: '/admin',
     name: 'Admin',
