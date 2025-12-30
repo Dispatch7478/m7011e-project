@@ -8,7 +8,7 @@
     <div v-if="matches.length > 0" class="bracket-container">
       <div class="bracket-side left">
         <div class="round" v-for="round in leftRounds" :key="'left-' + round.number">
-          <h2 class="round-title">{{ round.name }}</h2>
+          <h2 class="round-title" v-if="round.name">{{ round.name }}</h2>
           <div class="match" v-for="match in round.matches" :key="match.id" @click="reportScore(match)">
             <div class="participant" :class="{ 'winner': isWinner(match, match.player1_id) }">
               <span class="name">{{ getParticipantName(match.player1_id) }}</span>
@@ -40,7 +40,7 @@
 
       <div class="bracket-side right">
         <div class="round" v-for="round in rightRounds" :key="'right-' + round.number">
-          <h2 class="round-title">{{ round.name }}</h2>
+          <h2 class="round-title" v-if="round.name">{{ round.name }}</h2>
           <div class="match" v-for="match in round.matches" :key="match.id" @click="reportScore(match)">
             <div class="participant" :class="{ 'winner': isWinner(match, match.player1_id) }">
               <span class="score">{{ match.score_a || '-' }}</span>
@@ -165,7 +165,8 @@ export default {
         // Take the second half of matches and reverse their order for mirrored display
         const rightMatches = round.matches.slice(mid)
           .sort((a,b) => b.match_number - a.match_number); // Descending order
-        return {...round, matches: rightMatches};
+        // Clear the name for the right side to avoid duplicate titles
+        return {...round, matches: rightMatches, name: ''};
       });
     },
     finalRound() {
