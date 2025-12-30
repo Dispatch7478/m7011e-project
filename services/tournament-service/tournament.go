@@ -512,6 +512,10 @@ func GetParticipantsHandler(db *pgxpool.Pool) echo.HandlerFunc {
 			participants = append(participants, p)
 		}
 
-		return c.JSON(http.StatusOK, participants)
-	}
-}
+				return c.JSON(http.StatusOK, participants)
+
+			}
+
+		}
+
+		
