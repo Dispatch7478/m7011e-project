@@ -111,73 +111,75 @@ computed: {
   rounds() {
     if (!this.matches.length) return [];
 
-    // Group by round
     const roundsData = {};
-    for (const m of this.matches) {
-      const rNum = m.round ?? m.round_number;
+    for (const match of this.matches) {
+      const rNum = match.round ?? match.round_number;
       if (rNum == null) continue;
-      if (!roundsData[rNum]) roundsData[rNum] = { number: Number(rNum), matches: [], name: '' };
-      roundsData[rNum].matches.push(m);
+
+      if (!roundsData[rNum]) roundsData[rNum] = { number: Number(rNum), matches: [], name: "" };
+      roundsData[rNum].matches.push(match);
     }
 
-    const roundsArray = Object.values(roundsData).sort((a,b) => a.number - b.number);
+    const roundsArray = Object.values(roundsData).sort((a, b) => a.number - b.number);
 
-    // Sort within round
+    // Stable ordering inside a round
     roundsArray.forEach(r => {
-      r.matches.sort((a,b) => (a.match_number ?? 0) - (b.match_number ?? 0));
+      r.matches.sort((a, b) => (a.match_number ?? 0) - (b.match_number ?? 0));
     });
 
-    // Only keep the rounds that make sense for the participant count
-    // (8 players => 3 rounds)
-    const n = this.participants.length;
-    const expectedRounds = n ? Math.log2(n) : roundsArray.length;
-    const filtered = roundsArray.slice(0, expectedRounds);
-
     // Name rounds from the end
-    const total = filtered.length;
-    filtered.forEach((r, idx) => {
+    const total = roundsArray.length;
+    roundsArray.forEach((r, idx) => {
       const fromEnd = total - idx;
-      if (fromEnd === 1) r.name = 'Final';
-      else if (fromEnd === 2) r.name = 'Semifinals';
-      else if (fromEnd === 3) r.name = 'Quarterfinals';
+      if (fromEnd === 1) r.name = "Final";
+      else if (fromEnd === 2) r.name = "Semifinals";
+      else if (fromEnd === 3) r.name = "Quarterfinals";
       else r.name = `Round ${idx + 1}`;
     });
 
-    return filtered;
+    return roundsArray;
   },
 
   leftRounds() {
     const n = this.participants.length;
-    if (!n) return [];
-    const expectedRounds = Math.log2(n);
-    if (expectedRounds < 2) return [];
+    if (!n || (n & (n - 1)) !== 0) return []; // must be power of two
 
-    return this.rounds.slice(0, -1).map((round, idx) => {
-      // idx=0 => round1: matches n/2; idx=1 => round2: matches n/4; ...
-      const matchesInThisRound = n / Math.pow(2, idx + 1);
-      const leftCount = matchesInThisRound / 2;
+    const all = this.rounds;
+    if (all.length < 2) return [];
 
-      const leftMatches = round.matches.slice(0, leftCount);
-      return { ...round, matches: leftMatches };
+    // all rounds except the last (final)
+    return all.slice(0, -1).map((round, idx) => {
+      const r = idx + 1; // round number index: 1,2,3...
+      const totalMatchesThisRound = n / Math.pow(2, r);
+      const leftCount = totalMatchesThisRound / 2;
+
+      return {
+        ...round,
+        matches: round.matches.slice(0, leftCount),
+      };
     });
   },
 
   rightRounds() {
     const n = this.participants.length;
-    if (!n) return [];
-    const expectedRounds = Math.log2(n);
-    if (expectedRounds < 2) return [];
+    if (!n || (n & (n - 1)) !== 0) return [];
 
-    return this.rounds.slice(0, -1).map((round, idx) => {
-      const matchesInThisRound = n / Math.pow(2, idx + 1);
-      const leftCount = matchesInThisRound / 2;
+    const all = this.rounds;
+    if (all.length < 2) return [];
 
-      const rightMatches = round.matches
-        .slice(leftCount, leftCount * 2)
-        .slice() // copy
-        .reverse(); // mirror
+    return all.slice(0, -1).map((round, idx) => {
+      const r = idx + 1;
+      const totalMatchesThisRound = n / Math.pow(2, r);
+      const leftCount = totalMatchesThisRound / 2;
 
-      return { ...round, matches: rightMatches, name: '' };
+      // take the other half for the right side, mirror it
+      const right = round.matches.slice(leftCount, leftCount * 2).slice().reverse();
+
+      return {
+        ...round,
+        matches: right,
+        name: "", // optional: hide duplicated round header
+      };
     });
   },
 
