@@ -15,6 +15,10 @@ const (
 	ExchangeType = "topic"
 )
 
+type EventPublisher interface {
+	Publish(routingKey string, body string) error
+}
+
 type Service struct {
 	Conn    *amqp.Connection
 	Channel *amqp.Channel

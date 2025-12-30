@@ -8,13 +8,12 @@ import (
 	"math/rand"
 	"net/http"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 )
 
 type BracketHandler struct {
-	DB                   *pgxpool.Pool
-	RMQ                  *Service
+	DB                   DBClient
+	RMQ                  EventPublisher
 	TournamentServiceURL string
 }
 
