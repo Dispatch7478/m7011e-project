@@ -49,3 +49,14 @@ grafana:
   service:
     type: ClusterIP
     port: 3000
+
+ingress:
+  enabled: true
+  className: traefik
+  clusterIssuer: letsencrypt-staging
+  entrypoints: websecure
+
+  grafana:
+    host: grafana.ltu-m7011e-4.se
+    tlsSecretName: grafana-tls
+
