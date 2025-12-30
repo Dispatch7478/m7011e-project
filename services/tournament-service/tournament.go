@@ -511,6 +511,10 @@ func GetParticipantsHandler(db DBClient) echo.HandlerFunc {
 			participants = append(participants, p)
 		}
 
-		return c.JSON(http.StatusOK, participants)
-	}
-}
+				return c.JSON(http.StatusOK, participants)
+
+			}
+
+		}
+
+		
