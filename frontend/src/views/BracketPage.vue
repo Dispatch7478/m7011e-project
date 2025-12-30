@@ -61,6 +61,13 @@
     
     <div v-else class="empty-state">
       <p>No bracket generated yet.</p>
+      <button
+        v-if="!loading && matches.length === 0 && isOrganizer && tournament.status === 'registration_closed'"
+        @click="generateBracket"
+        class="btn-link"
+      >
+        Generate Bracket
+      </button>
     </div>
     <div v-if="showScoreModal" class="modal-overlay">
       <div class="modal-content">
@@ -107,6 +114,12 @@ export default {
     };
   },
   computed: {
+    isOrganizer() {
+      if (!this.currentUserId || !this.tournament.organizer_id) {
+        return false;
+      }
+      return this.currentUserId === this.tournament.organizer_id;
+    },
     rounds() {
       if (this.matches.length === 0) return [];
       const roundsData = {};
@@ -194,6 +207,34 @@ export default {
         console.error('Failed to fetch bracket data:', error);
       } finally {
         this.loading = false;
+      }
+    },
+    async generateBracket() {
+      if (!confirm(`Are you sure you want to generate the bracket for "${this.tournament.name}"? This action cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        await securedApi.post(`/api/brackets/generate?tournament_id=${this.tournament.id}`);
+        alert("Bracket generated successfully!");
+        await this.updateTournamentStatus(this.tournament.id, 'ongoing');
+        await this.fetchBracket();
+      } catch (error) {
+        console.error("Bracket generation failed:", error);
+        const msg = error.response?.data?.error || "Failed to generate bracket.";
+        alert(`Error: ${msg}`);
+      }
+    },
+    async updateTournamentStatus(tournamentId, newStatus) {
+      try {
+        await securedApi.patch(`/api/tournaments/${tournamentId}/status`, {
+          status: newStatus
+        });
+        alert("Status updated successfully!");
+      } catch (error) {
+        console.error("Update failed:", error);
+        const msg = error.response?.data?.error || 'Failed to update tournament status.';
+        alert(`Status update failed: ${msg}`);
       }
     },
     getParticipantName(id) {

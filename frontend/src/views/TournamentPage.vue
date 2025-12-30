@@ -90,6 +90,58 @@
       </div>
     </section>
 
+    <section class="action-cards">
+      <div class="card">
+        <h2>Previous Tournaments</h2>
+
+        <div v-if="previousTournaments.length === 0" class="tournaments-empty">
+          <p>No previous tournaments available.</p>
+        </div>
+
+        <div v-else class="tournaments-list">
+          <div
+            v-for="tournament in previousTournaments"
+            :key="tournament.id"
+            class="tournament-card"
+          >
+            <div class="tournament-main">
+              <h3 class="tournament-name">{{ tournament.name }}</h3>
+              
+              <div class="tournament-meta">
+                <span>{{ tournament.game }}</span>
+                <span class="separator">•</span>
+                <span>{{ tournament.format }}</span>
+                <span class="separator">•</span>
+                <span class="badge" :class="tournament.participant_type">
+                  {{ tournament.participant_type }}
+                </span>
+                <span class="separator">•</span>
+                <span class="tournament-date">{{ formatDate(tournament.start_date) }}</span>
+                <span class="separator">•</span>
+                <span class="tournament-status" :class="`status-${tournament.status.toLowerCase().replace('_', '-')}`">
+                  {{ tournament.status.replace(/_/g, ' ') }}
+                </span>
+              </div>
+              
+              <div class="participant-count">
+                <small>{{ tournament.current_participants }} / {{ tournament.max_participants }} registered</small>
+              </div>
+            </div>
+            <div class="tournament-actions">
+              <button
+                v-if="['ongoing', 'completed'].includes(tournament.status)"
+                type="button"
+                class="btn-link"
+                @click="viewBracket(tournament.id)"
+              >
+                View Bracket
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Button to create a new tournament -->
     <section v-if="isLoggedIn" class="creation-section">
       <router-link to="/tournaments/create" class="btn primary-btn">
@@ -107,6 +159,7 @@ export default {
   data() {
     return {
       tournaments: [],
+      previousTournaments: [],
       registrations: [],
       isLoggedIn: false,
     };
@@ -115,8 +168,12 @@ export default {
     async getTournaments() {
       try {
         const response = await securedApi.get('/api/tournaments');
-        //console.log("Full Response:", response);
-        this.tournaments = response.data || [];
+        const allTournaments = response.data || [];
+        const now = new Date();
+
+        this.tournaments = allTournaments.filter(t => new Date(t.start_date) >= now);
+        this.previousTournaments = allTournaments.filter(t => new Date(t.start_date) < now);
+
       } catch (error) {
         console.error('Failed to fetch tournaments:', error);
         alert('Failed to fetch tournaments.');
