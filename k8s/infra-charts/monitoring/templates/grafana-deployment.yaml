@@ -16,6 +16,8 @@ spec:
       labels:
         app: grafana
         release: {{ .Release.Name }}
+      annotations:
+        checksum/grafana-datasource: {{ include (print $.Template.BasePath "/grafana-datasource-config.yaml") . | sha256sum }}
     spec:
       containers:
         - name: grafana
