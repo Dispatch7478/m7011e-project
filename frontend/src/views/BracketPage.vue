@@ -107,73 +107,84 @@ export default {
       currentUserId: null,
     };
   },
-  computed: {
+computed: {
+  rounds() {
+    if (!this.matches.length) return [];
 
-    rounds() {
-      if (this.matches.length === 0) return [];
-      const roundsData = {};
-      
-      this.matches.forEach(match => {
-        // Handle "round_number" (Go default often outputs snake_case keys if tagged, or PascalCase if not)
-        // We will assume you tagged them as json:"round" or json:"round_number". 
-        // Adjust "match.round" based on your actual API response.
-        const rNum = match.round || match.round_number; 
-        
-        if (!roundsData[rNum]) {
-          roundsData[rNum] = { number: rNum, matches: [], name: '' };
-        }
-        roundsData[rNum].matches.push(match);
-      });
-      
-      let roundsArray = Object.values(roundsData).sort((a, b) => a.number - b.number);
-      
-      // Sort matches within each round to ensure consistent order
-      roundsArray.forEach(round => {
-        round.matches.sort((a, b) => a.match_number - b.match_number);
-      });
-      
-      // Dynamic Round Naming
-      const totalRounds = roundsArray.length;
-      roundsArray.forEach((round, index) => {
-        // Reverse index: 0 = Final, 1 = Semis, etc. (if we count backwards from end)
-        const roundFromFinal = totalRounds - index; 
-        if (roundFromFinal === 1) round.name = 'Final';
-        else if (roundFromFinal === 2) round.name = 'Semifinals';
-        else if (roundFromFinal === 3) round.name = 'Quarterfinals';
-        else round.name = `Round ${index + 1}`;
-      });
-
-      return roundsArray;
-    },
-    leftRounds() {
-      // Split rounds for visual display (Standard Tree)
-      const allRounds = this.rounds;
-      if (allRounds.length < 2) return [];
-
-      return allRounds.slice(0, -1).map(round => {
-        const mid = Math.ceil(round.matches.length / 2);
-        const leftMatches = round.matches.slice(0, mid);
-        return {...round, matches: leftMatches};
-      });
-    },
-    rightRounds() {
-       const allRounds = this.rounds;
-      if (allRounds.length < 2) return [];
-
-      return allRounds.slice(0, -1).map(round => {
-        const mid = Math.ceil(round.matches.length / 2);
-        // Take the second half of matches and reverse their order for mirrored display
-        const rightMatches = round.matches.slice(mid)
-          .sort((a,b) => b.match_number - a.match_number); // Descending order
-        // Clear the name for the right side to avoid duplicate titles
-        return {...round, matches: rightMatches, name: ''};
-      });
-    },
-    finalRound() {
-      if (this.rounds.length === 0) return null;
-      return this.rounds[this.rounds.length - 1];
+    // Group by round
+    const roundsData = {};
+    for (const m of this.matches) {
+      const rNum = m.round ?? m.round_number;
+      if (rNum == null) continue;
+      if (!roundsData[rNum]) roundsData[rNum] = { number: Number(rNum), matches: [], name: '' };
+      roundsData[rNum].matches.push(m);
     }
+
+    const roundsArray = Object.values(roundsData).sort((a,b) => a.number - b.number);
+
+    // Sort within round
+    roundsArray.forEach(r => {
+      r.matches.sort((a,b) => (a.match_number ?? 0) - (b.match_number ?? 0));
+    });
+
+    // Only keep the rounds that make sense for the participant count
+    // (8 players => 3 rounds)
+    const n = this.participants.length;
+    const expectedRounds = n ? Math.log2(n) : roundsArray.length;
+    const filtered = roundsArray.slice(0, expectedRounds);
+
+    // Name rounds from the end
+    const total = filtered.length;
+    filtered.forEach((r, idx) => {
+      const fromEnd = total - idx;
+      if (fromEnd === 1) r.name = 'Final';
+      else if (fromEnd === 2) r.name = 'Semifinals';
+      else if (fromEnd === 3) r.name = 'Quarterfinals';
+      else r.name = `Round ${idx + 1}`;
+    });
+
+    return filtered;
   },
+
+  leftRounds() {
+    const n = this.participants.length;
+    if (!n) return [];
+    const expectedRounds = Math.log2(n);
+    if (expectedRounds < 2) return [];
+
+    return this.rounds.slice(0, -1).map((round, idx) => {
+      // idx=0 => round1: matches n/2; idx=1 => round2: matches n/4; ...
+      const matchesInThisRound = n / Math.pow(2, idx + 1);
+      const leftCount = matchesInThisRound / 2;
+
+      const leftMatches = round.matches.slice(0, leftCount);
+      return { ...round, matches: leftMatches };
+    });
+  },
+
+  rightRounds() {
+    const n = this.participants.length;
+    if (!n) return [];
+    const expectedRounds = Math.log2(n);
+    if (expectedRounds < 2) return [];
+
+    return this.rounds.slice(0, -1).map((round, idx) => {
+      const matchesInThisRound = n / Math.pow(2, idx + 1);
+      const leftCount = matchesInThisRound / 2;
+
+      const rightMatches = round.matches
+        .slice(leftCount, leftCount * 2)
+        .slice() // copy
+        .reverse(); // mirror
+
+      return { ...round, matches: rightMatches, name: '' };
+    });
+  },
+
+  finalRound() {
+    return this.rounds.length ? this.rounds[this.rounds.length - 1] : null;
+  }
+},
   methods: {
     async fetchBracket() {
       const tournamentId = this.$route.params.id;
