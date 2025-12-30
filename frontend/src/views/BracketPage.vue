@@ -61,13 +61,6 @@
     
     <div v-else class="empty-state">
       <p>No bracket generated yet.</p>
-      <button
-        v-if="!loading && matches.length === 0 && isOrganizer && tournament.status === 'registration_closed'"
-        @click="generateBracket"
-        class="btn-link"
-      >
-        Generate Bracket
-      </button>
     </div>
     <div v-if="showScoreModal" class="modal-overlay">
       <div class="modal-content">
@@ -77,25 +70,26 @@
         <div class="score-inputs">
           <div class="team-input">
             <label>{{ getParticipantName(selectedMatch.player1_id) }}</label>
-            <input type="number" v-model="scoreA" min="0">
+            <input type="number" v-model="scoreA" min="0"/>
           </div>
           <div class="vs">VS</div>
           <div class="team-input">
             <label>{{ getParticipantName(selectedMatch.player2_id) }}</label>
-            <input type="number" v-model="scoreB" min="0">
+            <input type="number" v-model="scoreB" min="0"/>
           </div>
         </div>
 
         <div class="modal-actions">
           <button @click="closeModal" class="btn-cancel">Cancel</button>
           <button @click="submitScore" class="btn-confirm">Submit Result</button>
-        </div>
-      </div>
-    </div>
+        </div> 
+      </div> 
+    </div> 
   </div>
 </template>
 
 <script>
+
 import securedApi from '@/axios-auth.js';
 
 export default {
@@ -114,12 +108,6 @@ export default {
     };
   },
   computed: {
-    isOrganizer() {
-      if (!this.currentUserId || !this.tournament.organizer_id) {
-        return false;
-      }
-      return this.currentUserId === this.tournament.organizer_id;
-    },
     rounds() {
       if (this.matches.length === 0) return [];
       const roundsData = {};
@@ -209,34 +197,6 @@ export default {
         this.loading = false;
       }
     },
-    async generateBracket() {
-      if (!confirm(`Are you sure you want to generate the bracket for "${this.tournament.name}"? This action cannot be undone.`)) {
-        return;
-      }
-
-      try {
-        await securedApi.post(`/api/brackets/generate?tournament_id=${this.tournament.id}`);
-        alert("Bracket generated successfully!");
-        await this.updateTournamentStatus(this.tournament.id, 'ongoing');
-        await this.fetchBracket();
-      } catch (error) {
-        console.error("Bracket generation failed:", error);
-        const msg = error.response?.data?.error || "Failed to generate bracket.";
-        alert(`Error: ${msg}`);
-      }
-    },
-    async updateTournamentStatus(tournamentId, newStatus) {
-      try {
-        await securedApi.patch(`/api/tournaments/${tournamentId}/status`, {
-          status: newStatus
-        });
-        alert("Status updated successfully!");
-      } catch (error) {
-        console.error("Update failed:", error);
-        const msg = error.response?.data?.error || 'Failed to update tournament status.';
-        alert(`Status update failed: ${msg}`);
-      }
-    },
     getParticipantName(id) {
       if (!id) return 'TBD';
       const p = this.participants.find(p => p.id === id);
@@ -310,86 +270,5 @@ export default {
     this.fetchBracket();
   }
 }
+
 </script>
-
-<style scoped>
-.bracket-page { padding: 20px; text-align: center; }
-.bracket-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.back-link { text-decoration: none; color: #007bff; font-weight: bold; }
-
-.bracket-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow-x: auto;
-  padding: 20px 0;
-}
-
-.bracket-side { display: flex; gap: 40px; }
-
-/* Right Bracket Reversal */
-.bracket-side.right { direction: rtl; } 
-.bracket-side.right .round { direction: ltr; } /* Keep text LTR */
-
-.bracket-final { margin: 0 40px; }
-
-.round {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  gap: 20px;
-}
-
-.round-title { font-size: 0.9rem; color: #666; text-transform: uppercase; margin-bottom: 10px; }
-
-.match {
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  width: 220px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.match:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-color: #007bff; }
-
-.participant {
-  padding: 8px 12px;
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.9rem;
-}
-.participant:last-child { border-bottom: none; }
-
-.participant.winner { background-color: #f0fdf4; color: #15803d; font-weight: bold; }
-.participant.winner .score { color: #15803d; }
-
-.name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
-.score { font-weight: bold; color: #374151; }
-
-.loading-state, .empty-state { color: #6b7280; margin-top: 50px; font-size: 1.1rem; }
-
-.modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.5);
-  display: flex; justify-content: center; align-items: center;
-  z-index: 1000;
-}
-.modal-content {
-  background: white; padding: 30px; border-radius: 8px;
-  width: 400px; text-align: center;
-}
-.score-inputs {
-  display: flex; justify-content: space-between; align-items: center;
-  margin: 20px 0;
-}
-.team-input { display: flex; flex-direction: column; width: 40%; }
-.team-input input { padding: 8px; text-align: center; font-size: 1.2em; }
-.vs { font-weight: bold; color: #888; }
-.modal-actions { display: flex; justify-content: space-between; gap: 10px; }
-.btn-cancel, .btn-confirm { padding: 10px 20px; border-radius: 4px; cursor: pointer; border: none;}
-.btn-confirm { background-color: #28a745; color: white; }
-.btn-cancel { background-color: #ccc; }
-</style>

@@ -222,6 +222,19 @@ export default {
     viewBracket(tournamentId) {
         this.$router.push({ name: 'Bracket', params: { id: tournamentId } });
       },
+    async updateTournamentStatus(tournamentId, newStatus) {
+      try {
+        await securedApi.patch(`/api/tournaments/${tournamentId}/status`, {
+          status: newStatus
+        });
+        alert("Status updated successfully!");
+        this.getTournaments(); // Refresh the list to show updated status
+      } catch (error) {
+        console.error("Update failed:", error);
+        const msg = error.response?.data?.error || 'Failed to update tournament status.';
+        alert(`Status update failed: ${msg}`);
+      }
+    },
     isOrganizer(tournament) {
       // 1. Check if user is logged in
       if (!this.isLoggedIn || !this.$keycloak.tokenParsed) {
