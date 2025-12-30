@@ -127,6 +127,11 @@ export default {
       
       let roundsArray = Object.values(roundsData).sort((a, b) => a.number - b.number);
       
+      // Sort matches within each round to ensure consistent order
+      roundsArray.forEach(round => {
+        round.matches.sort((a, b) => a.match_number - b.match_number);
+      });
+      
       // Dynamic Round Naming
       const totalRounds = roundsArray.length;
       roundsArray.forEach((round, index) => {
@@ -146,7 +151,6 @@ export default {
       if (allRounds.length < 2) return [];
 
       // Logic: Matches in the first half of the draw go left
-      // This logic assumes match_number is ordered 1..N
       return allRounds.slice(0, -1).map(round => {
         const mid = Math.ceil(round.matches.length / 2);
         // Take the first half of matches
@@ -162,12 +166,12 @@ export default {
 
       return allRounds.slice(0, -1).map(round => {
         const mid = Math.ceil(round.matches.length / 2);
-        // Take the second half of matches
+        // Take the second half of matches and reverse their order for mirrored display
         const rightMatches = round.matches
           .filter(m => m.match_number > mid)
-          .sort((a,b) => a.match_number - b.match_number); // Ascending order
+          .sort((a,b) => b.match_number - a.match_number); // Descending order
         return {...round, matches: rightMatches};
-      }); // Right side should not be reversed here (testing)
+      });
     },
     finalRound() {
       if (this.rounds.length === 0) return null;
