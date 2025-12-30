@@ -150,13 +150,9 @@ export default {
       const allRounds = this.rounds;
       if (allRounds.length < 2) return [];
 
-      // Logic: Matches in the first half of the draw go left
       return allRounds.slice(0, -1).map(round => {
         const mid = Math.ceil(round.matches.length / 2);
-        // Take the first half of matches
-        const leftMatches = round.matches
-          .filter(m => m.match_number <= mid)
-          .sort((a,b) => a.match_number - b.match_number);
+        const leftMatches = round.matches.slice(0, mid);
         return {...round, matches: leftMatches};
       });
     },
@@ -167,8 +163,7 @@ export default {
       return allRounds.slice(0, -1).map(round => {
         const mid = Math.ceil(round.matches.length / 2);
         // Take the second half of matches and reverse their order for mirrored display
-        const rightMatches = round.matches
-          .filter(m => m.match_number > mid)
+        const rightMatches = round.matches.slice(mid)
           .sort((a,b) => b.match_number - a.match_number); // Descending order
         return {...round, matches: rightMatches};
       });
