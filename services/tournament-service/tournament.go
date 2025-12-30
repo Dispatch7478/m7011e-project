@@ -398,6 +398,7 @@ type UpdateTournamentRequest struct {
 	Game            string     `json:"game"`
 	Format          string     `json:"format"`
 	StartDate       *time.Time `json:"start_date"` // Pointer allows checking for null/missing
+	Status          string     `json:"status"`
 	MinParticipants int        `json:"min_participants"`
 	MaxParticipants int        `json:"max_participants"`
 	Public          bool       `json:"public"`
@@ -449,15 +450,16 @@ func UpdateTournamentDetailsHandler(db *pgxpool.Pool, rmq *Service) echo.Handler
 				game = COALESCE(NULLIF($3, ''), game),
 				format = COALESCE(NULLIF($4, ''), format),
 				start_date = COALESCE($5, start_date),
-				min_participants = COALESCE(NULLIF($6, 0), min_participants),
-				max_participants = COALESCE(NULLIF($7, 0), max_participants),
-				public = $8
-			WHERE id = $9
+				status = COALESCE(NULLIF($6, ''), status),
+				min_participants = COALESCE(NULLIF($7, 0), min_participants),
+				max_participants = COALESCE(NULLIF($8, 0), max_participants),
+				public = $9
+			WHERE id = $10
 		`
 		
 		_, err = db.Exec(context.Background(), updateQuery,
 			req.Name, req.Description, req.Game, req.Format, 
-			req.StartDate, req.MinParticipants, req.MaxParticipants, req.Public,
+			req.StartDate, req.Status, req.MinParticipants, req.MaxParticipants, req.Public,
 			tournamentID,
 		)
 
