@@ -327,7 +327,7 @@ export default {
 .participant.winner { background-color: #f0fdf4; color: #15803d; font-weight: bold; }
 .participant.winner .score { color: #15803d; }
 
-.name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+.name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .score { font-weight: bold; color: #374151; }
 
 .loading-state, .empty-state { color: #6b7280; margin-top: 50px; font-size: 1.1rem; }
