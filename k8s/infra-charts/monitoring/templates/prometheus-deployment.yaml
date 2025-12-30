@@ -16,6 +16,8 @@ spec:
       labels:
         app: prometheus
         release: {{ .Release.Name }}
+      annotations:
+        checksum/prometheus-config: {{ include (print $.Template.BasePath "/prometheus-configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - name: prometheus
