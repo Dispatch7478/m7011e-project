@@ -16,6 +16,11 @@ const (
 	ExchangeType = "topic"
 )
 
+// EventPublisher interface allows us to mock RabbitMQ
+type EventPublisher interface {
+	Publish(routingKey string, body string) error
+}
+
 // Service holds the connection and channel
 type Service struct {
 	Conn    *amqp.Connection

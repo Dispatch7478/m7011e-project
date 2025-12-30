@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 )
 
@@ -40,7 +39,7 @@ type Event struct {
 // --- Handlers ---
 
 // CreateTournamentHandler now accepts DB pool and RabbitMQ service
-func CreateTournamentHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
+func CreateTournamentHandler(db DBClient, rmq EventPublisher) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var t Tournament
 
@@ -117,7 +116,7 @@ type RegistrationRequest struct {
 }
 
 
-func GetAllTournamentsHandler(db *pgxpool.Pool) echo.HandlerFunc {
+func GetAllTournamentsHandler(db DBClient) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		query := `
 			SELECT 
@@ -163,7 +162,7 @@ func GetAllTournamentsHandler(db *pgxpool.Pool) echo.HandlerFunc {
 	}
 }
 
-func RegisterTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
+func RegisterTournamentHandler(db DBClient) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		tournamentID := c.Param("id")
 		userID := c.Request().Header.Get("X-User-Id")
@@ -282,7 +281,7 @@ func canManageTournament(userID string, userRoles string, t Tournament) bool {
 }
 
 
-func UpdateTournamentStatusHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
+func UpdateTournamentStatusHandler(db DBClient, rmq EventPublisher) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		tournamentID := c.Param("id")
 		userID := c.Request().Header.Get("X-User-Id")
@@ -352,7 +351,7 @@ func UpdateTournamentStatusHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerF
 	}
 }
 
-func GetTournamentHandler(db *pgxpool.Pool) echo.HandlerFunc {
+func GetTournamentHandler(db DBClient) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		tournamentID := c.Param("id")
 		userID := c.Request().Header.Get("X-User-Id")
@@ -404,7 +403,7 @@ type UpdateTournamentRequest struct {
 	Public          bool       `json:"public"`
 }
 
-func UpdateTournamentDetailsHandler(db *pgxpool.Pool, rmq *Service) echo.HandlerFunc {
+func UpdateTournamentDetailsHandler(db DBClient, rmq EventPublisher) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		tournamentID := c.Param("id")
 		userID := c.Request().Header.Get("X-User-Id")
@@ -476,7 +475,7 @@ func UpdateTournamentDetailsHandler(db *pgxpool.Pool, rmq *Service) echo.Handler
 	}
 }
 
-func GetParticipantsHandler(db *pgxpool.Pool) echo.HandlerFunc {
+func GetParticipantsHandler(db DBClient) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		tournamentID := c.Param("id")
 
