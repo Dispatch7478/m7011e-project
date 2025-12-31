@@ -37,11 +37,13 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(MetricsMiddleware) // Add metrics middleware
 
 	// 5. Routes
 	e.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Bracket Service Healthy")
 	})
+	e.GET("/metrics", MetricsHandler()) // Add metrics endpoint
 
     // Handler Initialization (We will create this next)
     h := &BracketHandler{DB: dbPool, RMQ: rmq, TournamentServiceURL: tournamentServiceURL}
