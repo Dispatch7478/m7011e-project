@@ -29,9 +29,11 @@ func main() {
 	// Middleware (Logging, Recover)
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(MetricsMiddleware)
 
 	// Routes
 	e.GET("/health", HealthCheckHandler)
+	e.GET("/metrics", MetricsHandler())
 	
 	e.POST("/tournaments", CreateTournamentHandler(dbPool, rmq))
 	e.GET("/tournaments", GetAllTournamentsHandler(dbPool))
