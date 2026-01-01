@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/dispatch7478/m7011e-project/bracket-service
   pullPolicy: IfNotPresent
-  tag: "14c46b4820324ef57835be999336dddd466b59a6"
+  tag: "3273ef1c2bd9e7c0660c6f4ecfcae768aecf5173"
 # Database configuration
 db:
   port: 5432
