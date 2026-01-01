@@ -83,7 +83,7 @@
         {
           "refId": "A",
           "expr": "topk(8, sum(rate(teamservice_http_requests_total{job=\"team-service\"}[5m])) by (route))",
-          "legendFormat": "{{route}}"
+          "legendFormat": "{{"{{"}}route{{"}}"}}"
         }
       ]
     },
@@ -96,7 +96,7 @@
         {
           "refId": "A",
           "expr": "topk(8, histogram_quantile(0.95, sum(rate(teamservice_http_request_duration_seconds_bucket{job=\"team-service\"}[5m])) by (le, route)))",
-          "legendFormat": "{{route}}"
+          "legendFormat": "{{"{{"}}route{{"}}"}}"
         }
       ]
     }
