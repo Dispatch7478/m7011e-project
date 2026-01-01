@@ -153,11 +153,10 @@ computed: {
       const half = Math.ceil(round.matches.length / 2);
       return {
         ...round,
-        matches: round.matches.slice(0, leftCount),
+        matches: round.matches.slice(0, half),
       };
     });
   },
-
   rightRounds() {
     const all = this.rounds;
     if (all.length < 2) return [];
