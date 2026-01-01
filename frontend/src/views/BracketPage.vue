@@ -141,18 +141,16 @@ computed: {
   },
 
   leftRounds() {
-    const n = this.participants.length;
-    if (!n || (n & (n - 1)) !== 0) return []; // must be power of two
-
     const all = this.rounds;
     if (all.length < 2) return [];
 
     // all rounds except the last (final)
     return all.slice(0, -1).map((round, idx) => {
-      const r = idx + 1; // round number index: 1,2,3...
-      const totalMatchesThisRound = n / Math.pow(2, r);
-      const leftCount = totalMatchesThisRound / 2;
-
+      // const r = idx + 1; // round number index: 1,2,3...
+      // const totalMatchesThisRound = n / Math.pow(2, r);
+      // const leftCount = totalMatchesThisRound / 2;
+      // Just take the first half of matches in this round
+      const half = Math.ceil(round.matches.length / 2);
       return {
         ...round,
         matches: round.matches.slice(0, leftCount),
@@ -161,24 +159,18 @@ computed: {
   },
 
   rightRounds() {
-    const n = this.participants.length;
-    if (!n || (n & (n - 1)) !== 0) return [];
-
     const all = this.rounds;
     if (all.length < 2) return [];
 
     return all.slice(0, -1).map((round, idx) => {
-      const r = idx + 1;
-      const totalMatchesThisRound = n / Math.pow(2, r);
-      const leftCount = totalMatchesThisRound / 2;
-
-      // take the other half for the right side, mirror it
-      const right = round.matches.slice(leftCount, leftCount * 2).slice().reverse();
+      const half = Math.ceil(round.matches.length / 2);
+      // Take the second half and reverse for visual symmetry
+      const right = round.matches.slice(half).slice().reverse();
 
       return {
         ...round,
         matches: right,
-        name: "", // optional: hide duplicated round header
+        name: "",
       };
     });
   },
