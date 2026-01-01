@@ -267,7 +267,7 @@ export default {
         alert(msg);
       }
     },
-
+    // Close team selection modal
     closeTeamModal() {
       this.showTeamModal = false;
       this.selectedTournament = null;
