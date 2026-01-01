@@ -6,40 +6,48 @@ This service is the source of truth for all team-related data.
 
 ### `teams` Table
 
-Stores the core team information.
+Stores the core team information. A team's name and tag must be unique.
 
 ```sql
 CREATE TABLE teams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
-    tag VARCHAR(10) NOT NULL, -- e.g. [TSM]
-    captain_id UUID NOT NULL, -- Logical link to User Service
+    tag VARCHAR(10) NOT NULL,
+    captain_id UUID NOT NULL, -- Keycloak user id
     logo_url TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE teams
+  ADD CONSTRAINT teams_name_unique UNIQUE (name),
+  ADD CONSTRAINT teams_tag_unique UNIQUE (tag);
+```
+
+### `team_members` Table
+
+A join table that links users to teams and defines their role.
+
+```sql
+CREATE TABLE team_members (
+    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL, -- Keycloak user id
+    role VARCHAR(20) DEFAULT 'member', -- captain, member, admin
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (team_id, user_id)
 );
 ```
 
-**Design Choices:**
-
-*   **Source of Truth:** This service and this table are the single source of truth for the concept of a "Team." Any other service that needs to know about a team should query this service.
-*   **Captaincy:** We store the `captain_id` to quickly check permissions for actions like editing the team name or inviting new members. This is a logical link to the `users` table in the `user-service`.
-
 ### `invites` Table
 
-Stores information about invitations sent to users to join a team.
+Stores invitations sent to users to join a team.
 
 ```sql
 CREATE TABLE invites (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id UUID REFERENCES teams(id),
-    inviter_id UUID NOT NULL, -- User who sent it
+    inviter_id UUID NOT NULL,
     invitee_email VARCHAR(255) NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, rejected
-    expires_at TIMESTAMP WITH TIME ZONE
+    status VARCHAR(20) DEFAULT 'pending',
+    expires_at TIMESTAMPTZ
 );
 ```
-
-**Design Choices:**
-
-*   **Invite by Email:** We are inviting users by email. This allows us to invite users who may not have an account on the platform yet. When the invitee accepts the invitation, we can then link the invitation to their user account.
-*   **Status Flow:** The `status` column drives the logic of the invitation system. For example, a user cannot accept an invitation that has already been accepted or rejected.
