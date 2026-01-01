@@ -1,19 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-grafana-dashboard-provider
+  name: {{ .Release.Name }}-grafana-dashboards
   labels:
     app: grafana
     release: {{ .Release.Name }}
 data:
-  dashboards.yaml: |
-    apiVersion: 1
-    providers:
-      - name: "default"
-        orgId: 1
-        folder: "Team Service"
-        type: file
-        disableDeletion: false
-        editable: true
-        options:
-          path: /var/lib/grafana/dashboards
+  team-service-dashboard.json: |
+{{ .Files.Get "dashboards/team-service-dashboard.json" | indent 4 }}
