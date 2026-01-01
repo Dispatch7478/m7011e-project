@@ -61,7 +61,6 @@ func (h *BracketHandler) GenerateBracket(c echo.Context) error {
 	}
 
 	// 2. Shuffle Participants
-	// Note: In Go 1.20+, the global random source is automatically seeded, so we don't need "time" to seed it.
 	rand.Shuffle(count, func(i, j int) { participants[i], participants[j] = participants[j], participants[i] })
 
 	// 3. Calculate Bracket Depth
@@ -93,9 +92,10 @@ func (h *BracketHandler) GenerateBracket(c echo.Context) error {
 				}
 			}
 
-			var p1, p2 *string
+			var p1, p2, winnerID *string
 			status := "scheduled"
 			
+			// Fill round 1 with players
 			if r == 1 {
 				idx1 := (m - 1) * 2
 				idx2 := idx1 + 1
@@ -110,20 +110,36 @@ func (h *BracketHandler) GenerateBracket(c echo.Context) error {
 				// Handle BYE
 				if p1 != nil && p2 == nil {
 					status = "completed"
+					winnerID = p1
 				}
 			}
 
 			var matchID string
 			err := tx.QueryRow(context.Background(), `
-				INSERT INTO matches (tournament_id, round, match_number, player1_id, player2_id, next_match_id, status)
-				VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
-			`, tournamentID, r, m, p1, p2, nextMatchID, status).Scan(&matchID)
+				INSERT INTO matches (tournament_id, round, match_number, player1_id, player2_id, next_match_id, status, winner_id)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
+			`, tournamentID, r, m, p1, p2, nextMatchID, status, winnerID).Scan(&matchID)
 
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save match"})
 			}
 
 			matchMap[fmt.Sprintf("%d-%d", r, m)] = matchID
+			// Advance automatically for byes
+			if status == "completed" && winnerID != nil && nextMatchID != nil {
+				// Determine target slot (Odd -> P1, Even -> P2)
+				targetField := "player1_id"
+				if m%2 == 0 {
+					targetField = "player2_id"
+				}
+
+				// Update the Next Match immediately
+				advQuery := fmt.Sprintf("UPDATE matches SET %s = $1 WHERE id = $2", targetField)
+				_, err = tx.Exec(context.Background(), advQuery, winnerID, *nextMatchID)
+				if err != nil {
+					return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to advance bye winner"})
+				}
+			}
 		}
 	}
 
