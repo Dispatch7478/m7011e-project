@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-prometheus-rules
+  labels:
+    app: prometheus
+    release: {{ .Release.Name }}
+data:
+  team-service.rules.yml: |
+    groups:
+      - name: team-service
+        rules:
+          - alert: TeamServiceDown
+            expr: up{job="team-service"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "team-service is down"
+
+          - alert: TeamServiceHigh5xxRate
+            expr: |
+              (
+                sum(rate(teamservice_http_requests_total{job="team-service", code=~"5.."}[5m]))
+              /
+                sum(rate(teamservice_http_requests_total{job="team-service"}[5m]))
+              ) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "team-service 5xx rate > 5%"
+
+          - alert: TeamServiceHighLatencyP95
+            expr: |
+              histogram_quantile(
+                0.95,
+                sum(rate(teamservice_http_request_duration_seconds_bucket{job="team-service"}[5m])) by (le)
+              ) > 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "team-service p95 latency > 1s"
