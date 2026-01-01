@@ -76,7 +76,7 @@
                     && tournament.current_participants < tournament.max_participants"
                     type="button"
                     class="btn-link"
-                    @click="registerForTournament(tournament)"
+                    @click="initiateRegistration(tournament)"
                   >
                     Register
                   </button>
@@ -148,6 +148,31 @@
         Create a New Tournament
       </router-link>
     </section>
+
+    <div v-if="showTeamModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Select Team</h3>
+        <p>This is a team tournament. Please select which team you want to register.</p>
+        
+        <div v-if="myTeams.length > 0" class="team-list">
+          <div 
+            v-for="team in myTeams" 
+            :key="team.id" 
+            class="team-option"
+            @click="registerTeam(team)"
+          >
+            <span class="team-tag">[{{ team.tag }}]</span>
+            <span class="team-name">{{ team.name }}</span>
+          </div>
+        </div>
+        <div v-else class="empty-teams">
+          <p>You are not the captain of any teams.</p>
+          <router-link to="/teams/create" class="btn-link">Create a Team</router-link>
+        </div>
+
+        <button @click="closeTeamModal" class="btn-cancel">Cancel</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -162,6 +187,9 @@ export default {
       previousTournaments: [],
       registrations: [],
       isLoggedIn: false,
+      showTeamModal: false,
+      myTeams: [],
+      selectedTournament: null,
     };
   },
   methods: {
@@ -182,42 +210,67 @@ export default {
     isRegistered(tournamentId) {
       return this.registrations.includes(tournamentId);
     },
-    async registerForTournament(tournament) {
+    // Logic to decide if we show modal or register directly
+    async initiateRegistration(tournament) {
+      if (tournament.participant_type === 'team') {
+        this.selectedTournament = tournament;
+        await this.fetchMyCaptainTeams();
+        this.showTeamModal = true;
+      } else {
+        await this.registerIndividual(tournament);
+      }
+    },
+    // Fetch teams where I am captain
+    async fetchMyCaptainTeams() {
       try {
-        // Get Username directly from Keycloak Token
-        // The tokenParsed object contains the claims from the JWT.
-        const username = this.$keycloak.tokenParsed.preferred_username || "Unknown User";
-        
-        // Handle Team Logic (Temporarily Disabled)
-        if (tournament.participant_type === 'team') {
-          // Mirroring the Backend's 501 Not Implemented logic
-          alert("Team registration is temporarily disabled while we update our team architecture.");
-          return;
-        } 
+        const response = await securedApi.get('/api/teams/me/teams/captain');
+        this.myTeams = response.data || [];
+      } catch (error) {
+        console.error("Failed to fetch teams:", error);
+        this.myTeams = [];
+      }
+    },
+    async registerTeam(team) {
+      if (!this.selectedTournament) return;
+      
+      const payload = {
+        name: team.name, 
+        team_id: team.id 
+      };
 
-        // Individual Logic: the backend gets the ID from the token header and the name from the jwt claims.
-        const payload = { };
-
-        // Send Registration to Backend
+      await this.submitRegistration(this.selectedTournament, payload);
+      this.closeTeamModal();
+    },
+    async registerIndividual(tournament) {
+      const payload = {
+        name: this.$keycloak.tokenParsed.preferred_username || "Unknown"
+      };
+      await this.submitRegistration(tournament, payload);
+    },
+    // Shared submission logic
+    async submitRegistration(tournament, payload) {
+      try {
         await securedApi.post(`/api/tournaments/${tournament.id}/register`, payload);
 
-        // Update UI
         this.registrations.push(tournament.id);
         
-        // Update the participant count locally so to avoid a re-fetch of the whole list
+        // Optimistic UI update
         const tIndex = this.tournaments.findIndex(t => t.id === tournament.id);
         if (tIndex !== -1) {
           this.tournaments[tIndex].current_participants += 1;
         }
         
-        alert('Successfully registered!');
-
+        alert(`Successfully registered for ${tournament.name}!`);
       } catch (error) {
         console.error('Registration failed:', error);
-        // Display the specific error message from the backend (e.g., "Tournament is full")
         const msg = error.response?.data?.error || 'Failed to register.';
         alert(msg);
       }
+    },
+
+    closeTeamModal() {
+      this.showTeamModal = false;
+      this.selectedTournament = null;
     },
     viewBracket(tournamentId) {
         this.$router.push({ name: 'Bracket', params: { id: tournamentId } });
@@ -513,5 +566,61 @@ input[type='text'], select {
     padding-top: 1rem;
     border-top: 1px solid #f3f4f6;
   }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: white; padding: 30px; border-radius: 8px;
+  width: 400px; text-align: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.team-list {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.team-option {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.team-option:hover {
+  background-color: #f0f9ff;
+  border-color: #007bff;
+}
+.team-tag {
+  font-weight: bold;
+  color: #555;
+  font-family: monospace;
+}
+.team-name {
+  font-weight: 600;
+}
+.empty-teams {
+  margin: 20px 0;
+  color: #666;
+}
+.btn-cancel {
+  margin-top: 10px;
+  background-color: #e0e0e0;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 </style>
