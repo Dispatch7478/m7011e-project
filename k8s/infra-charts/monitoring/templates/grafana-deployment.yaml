@@ -18,6 +18,8 @@ spec:
         release: {{ .Release.Name }}
       annotations:
         checksum/grafana-datasource: {{ include (print $.Template.BasePath "/grafana-datasource-config.yaml") . | sha256sum }}
+        checksum/grafana-dashboard-provider: {{ include (print $.Template.BasePath "/grafana-dashboard-provider-configmap.yaml") . | sha256sum }}
+        checksum/grafana-dashboards: {{ include (print $.Template.BasePath "/grafana-dashboards-configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - name: grafana
@@ -26,6 +28,10 @@ spec:
           volumeMounts:
             - name: grafana-datasource
               mountPath: /etc/grafana/provisioning/datasources
+            - name: grafana-dashboard-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: grafana-dashboards
+              mountPath: /var/lib/grafana/dashboards
           ports:
             - containerPort: 3000
           env:
@@ -43,3 +49,9 @@ spec:
         - name: grafana-datasource
           configMap:
             name: {{ .Release.Name }}-grafana-datasource
+        - name: grafana-dashboard-provider
+          configMap:
+            name: {{ .Release.Name }}-grafana-dashboard-provider
+        - name: grafana-dashboards
+          configMap:
+            name: {{ .Release.Name }}-grafana-dashboards
