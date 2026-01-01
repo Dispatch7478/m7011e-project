@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -47,16 +48,16 @@ func TestGenerateBracket_Success(t *testing.T) {
 	
 	// Round 2 (Final) - 1 Match
 	mockDB.ExpectQuery(`(?s).*INSERT INTO matches.*`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow("match-final"))
 
 	// Round 1 (Semis) - 2 Matches
 	mockDB.ExpectQuery(`(?s).*INSERT INTO matches.*`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow("match-semi-1"))
 
 	mockDB.ExpectQuery(`(?s).*INSERT INTO matches.*`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow("match-semi-2"))
 
 	mockDB.ExpectCommit()
@@ -70,6 +71,39 @@ func TestGenerateBracket_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestGenerateBracket_Validation(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherRegexp))
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	h := &BracketHandler{DB: mockDB, RMQ: &MockRabbitMQ{}, TournamentServiceURL: "http://mock"}
+
+	// Scenario 1: Missing Tournament ID
+	req := httptest.NewRequest(http.MethodPost, "/brackets/generate", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	_ = h.GenerateBracket(c)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+	// Scenario 2: Not Enough Participants
+	// Mock returning 1 participant
+	tsMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		participants := []Participant{{ID: "p1", Name: "Player 1"}}
+		json.NewEncoder(w).Encode(participants)
+	}))
+	defer tsMock.Close()
+	h.TournamentServiceURL = tsMock.URL
+
+	req = httptest.NewRequest(http.MethodPost, "/brackets/generate?tournament_id=t1", nil)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	_ = h.GenerateBracket(c)
+	
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Not enough participants")
 }
 
 func TestUpdateMatchResult_Advancement(t *testing.T) {
@@ -167,5 +201,118 @@ func TestGetBracket(t *testing.T) {
 	// Verify we got the match back
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "m1")
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestUpdateMatchResult_FinalMatch(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	h := &BracketHandler{DB: mockDB, RMQ: &MockRabbitMQ{}}
+
+	matchID := "match-final"
+	winnerID := "winner-user"
+	matchNum := 1 
+	body := `{"score_a": "3", "score_b": "2", "winner_id": "winner-user"}`
+
+	mockDB.ExpectBegin()
+
+	// 1. Fetch: Return NIL for next_match_id to simulate the Final
+	// Note: We use AddRow(nil, matchNum)
+	mockDB.ExpectQuery(`SELECT next_match_id, match_number FROM matches WHERE id = $1`).
+		WithArgs(matchID).
+		WillReturnRows(pgxmock.NewRows([]string{"next_match_id", "match_number"}).
+			AddRow(nil, matchNum))
+
+	// 2. Update Score (Standard update)
+	updateScoreSQL := `
+		UPDATE matches 
+		SET score_a = $1, score_b = $2, winner_id = $3, status = 'completed' 
+		WHERE id = $4`
+	mockDB.ExpectExec(updateScoreSQL).
+		WithArgs("3", "2", winnerID, matchID).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	// 3. Expect Commit immediately (NO advancement query should run)
+	mockDB.ExpectCommit()
+
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("match_id")
+	c.SetParamValues(matchID)
+
+	err = h.UpdateMatchResult(c)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestGenerateBracket_NotEnoughParticipants(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherRegexp))
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	// 1. Mock External Service returning only 1 participant
+	tsMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		participants := []Participant{
+			{ID: "p1", Name: "Player 1"},
+		}
+		json.NewEncoder(w).Encode(participants)
+	}))
+	defer tsMock.Close()
+
+	h := &BracketHandler{
+		DB:                   mockDB,
+		RMQ:                  &MockRabbitMQ{},
+		TournamentServiceURL: tsMock.URL,
+	}
+
+	// 2. No DB interaction expected (should fail before transaction)
+
+	req := httptest.NewRequest(http.MethodPost, "/brackets/generate?tournament_id=t1", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err = h.GenerateBracket(c)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Not enough participants")
+}
+
+func TestUpdateMatchResult_NotFound(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	h := &BracketHandler{DB: mockDB}
+	
+	matchID := "unknown-id"
+	body := `{"score_a": "1", "score_b": "0", "winner_id": "w"}`
+
+	mockDB.ExpectBegin()
+	// Fail the fetch
+	mockDB.ExpectQuery(`SELECT next_match_id, match_number FROM matches WHERE id = $1`).
+		WithArgs(matchID).
+		WillReturnError(errors.New("no rows in result set"))
+	mockDB.ExpectRollback()
+
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("match_id")
+	c.SetParamValues(matchID)
+
+	_ = h.UpdateMatchResult(c)
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
 	assert.NoError(t, mockDB.ExpectationsWereMet())
 }
