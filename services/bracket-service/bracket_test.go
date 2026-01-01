@@ -316,3 +316,105 @@ func TestUpdateMatchResult_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 	assert.NoError(t, mockDB.ExpectationsWereMet())
 }
+
+func TestGenerateBracket_WithBye(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherRegexp))
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	// 1. Mock External Service (3 Participants = 1 Bye)
+	tsMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		participants := []Participant{
+			{ID: "p1", Name: "Player 1"},
+			{ID: "p2", Name: "Player 2"},
+			{ID: "p3", Name: "Player 3"},
+		}
+		json.NewEncoder(w).Encode(participants)
+	}))
+	defer tsMock.Close()
+
+	h := &BracketHandler{
+		DB:                   mockDB,
+		RMQ:                  &MockRabbitMQ{},
+		TournamentServiceURL: tsMock.URL,
+	}
+
+	mockDB.ExpectBegin()
+
+	// LOGIC: 3 Players -> 4 Slots. Round 1 has 2 matches.
+	// Match 1: P1 vs P2 (Standard)
+	// Match 2: P3 vs NULL (Bye) -> Auto Advance P3
+
+	// 1. Insert Final (Round 2)
+	mockDB.ExpectQuery(`(?s).*INSERT INTO matches.*`).
+		WithArgs(pgxmock.AnyArg(), 2, 1, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow("match-final"))
+
+	// 2. Insert Semi 1 (Standard)
+	mockDB.ExpectQuery(`(?s).*INSERT INTO matches.*`).
+		WithArgs(pgxmock.AnyArg(), 1, 1, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow("match-semi-1"))
+
+	// 3. Insert Semi 2 (Bye)
+	mockDB.ExpectQuery(`(?s).*INSERT INTO matches.*`).
+		WithArgs(pgxmock.AnyArg(), 1, 2, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow("match-semi-2"))
+
+	// 4. Expect Auto-Advancement UPDATE for the Bye match
+	// Logic: If Match 2 (Even) is bye, update Player2 slot of next match
+	mockDB.ExpectExec(`(?s).*UPDATE matches SET.*`).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	mockDB.ExpectCommit()
+
+	req := httptest.NewRequest(http.MethodPost, "/brackets/generate?tournament_id=t1", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err = h.GenerateBracket(c)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestGenerateBracket_TournamentServiceError(t *testing.T) {
+	e := echo.New()
+	
+	// Mock Server that returns 500
+	tsMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer tsMock.Close()
+
+	h := &BracketHandler{
+		DB:                   nil, // Should not reach DB
+		TournamentServiceURL: tsMock.URL,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/brackets/generate?tournament_id=t1", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	_ = h.GenerateBracket(c)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Failed to fetch participants")
+}
+
+func TestUpdateMatchResult_InvalidBody(t *testing.T) {
+	e := echo.New()
+	h := &BracketHandler{DB: nil} // No DB needed
+
+	body := `{"score_a": "2", "score_b": }` // Malformed JSON
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	_ = h.UpdateMatchResult(c)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
