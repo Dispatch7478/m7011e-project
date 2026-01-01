@@ -10,7 +10,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 )
-
+// trigger ci testiing
 type BracketHandler struct {
 	DB                   DBClient
 	RMQ                  EventPublisher
