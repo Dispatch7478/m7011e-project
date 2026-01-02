@@ -15,3 +15,5 @@ data:
   tournament-service-dashboard.json: |
 {{ .Files.Get "dashboards/tournament-service-dashboard.json" | indent 4 }}
 
+  user-service-dashboard.json: |
+{{ .Files.Get "dashboards/user-service-dashboard.json" | indent 4 }}
