@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -107,9 +108,11 @@ func TestDeleteTeam_NotFoundWhenNoRowsAffected(t *testing.T) {
 	}
 	defer db.Close()
 
-	mock.ExpectExec(`DELETE FROM teams\s+WHERE id = \$1::uuid AND captain_id = \$2::uuid`).
-		WithArgs("team-1", "user-123").
-		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT captain_id FROM teams WHERE id = \$1::uuid FOR UPDATE`).
+		WithArgs("team-1").
+		WillReturnError(sql.ErrNoRows) // Simulate team not found
+	mock.ExpectRollback()
 
 	h := Handler{DB: db}
 	rr := httptest.NewRecorder()
@@ -135,14 +138,31 @@ func TestDeleteTeam_NoContentOnSuccess(t *testing.T) {
 	}
 	defer db.Close()
 
-	mock.ExpectExec(`DELETE FROM teams\s+WHERE id = \$1::uuid AND captain_id = \$2::uuid`).
-		WithArgs("team-1", "user-123").
-		WillReturnResult(sqlmock.NewResult(0, 1))
+	// Mock the full transaction
+	mock.ExpectBegin()
+	// 1. Check for captain
+	mock.ExpectQuery(`SELECT captain_id FROM teams WHERE id = \$1::uuid FOR UPDATE`).
+		WithArgs("team-1").
+		WillReturnRows(sqlmock.NewRows([]string{"captain_id"}).AddRow("user-123"))
+	// 2. Delete invites
+	mock.ExpectExec(`DELETE FROM invites WHERE team_id = \$1::uuid`).
+		WithArgs("team-1").
+		WillReturnResult(sqlmock.NewResult(0, 1)) // Assume 1 invite deleted
+	// 3. Delete members
+	mock.ExpectExec(`DELETE FROM team_members WHERE team_id = \$1::uuid`).
+		WithArgs("team-1").
+		WillReturnResult(sqlmock.NewResult(0, 2)) // Assume 2 members deleted
+	// 4. Delete team
+	mock.ExpectExec(`DELETE FROM teams WHERE id = \$1::uuid`).
+		WithArgs("team-1").
+		WillReturnResult(sqlmock.NewResult(0, 1)) // Assume 1 team deleted
+	mock.ExpectCommit()
 
 	h := Handler{DB: db}
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodDelete, "/teams/team-1", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "team-1"})
+	// This user ID must match the captain_id returned by the SELECT query
 	req = req.WithContext(context.WithValue(req.Context(), ctxUserID, "user-123"))
 
 	h.DeleteTeam(rr, req)
