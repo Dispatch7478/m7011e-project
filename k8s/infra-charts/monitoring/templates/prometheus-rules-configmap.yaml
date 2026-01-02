@@ -42,3 +42,39 @@ data:
               severity: warning
             annotations:
               summary: "team-service p95 latency > 1s"
+  bracket-service.rules.yml: |
+    groups:
+      - name: bracket-service
+        rules:
+          - alert: BracketServiceDown
+            expr: up{job="bracket-service"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "bracket-service is down"
+
+          - alert: BracketServiceHigh5xxRate
+            expr: |
+              (
+                sum(rate(bracketservice_http_requests_total{job="bracket-service",code=~"5.."}[5m]))
+              /
+                sum(rate(bracketservice_http_requests_total{job="bracket-service"}[5m]))
+              ) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "bracket-service 5xx rate > 5%"
+
+          - alert: BracketServiceHighLatencyP95
+            expr: |
+              histogram_quantile(
+                0.95,
+                sum(rate(bracketservice_http_request_duration_seconds_bucket{job="bracket-service"}[5m])) by (le)
+              ) > 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "bracket-service p95 latency > 1s"

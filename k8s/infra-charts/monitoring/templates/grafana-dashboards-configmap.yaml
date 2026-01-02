@@ -8,3 +8,5 @@ metadata:
 data:
   team-service-dashboard.json: |
 {{ .Files.Get "dashboards/team-service-dashboard.json" | indent 4 }}
+bracket-service-dashboard.json: |
+{{ .Files.Get "dashboards/bracket-service-dashboard.json" | indent 4 }}
