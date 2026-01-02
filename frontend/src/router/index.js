@@ -10,6 +10,7 @@ import ChangeTournamentPage from '../views/ChangeTournamentPage.vue'
 import AdminPage from '../views/AdminPage.vue'
 import TeamListPage from '../views/TeamListPage.vue';
 import CreateTeamPage from '../views/CreateTeamPage.vue';
+import TeamDetailPage from '../views/TeamDetailPage.vue';
 
 const routes = [
   { path: '/',      name: 'Home',   component: HomePage },
@@ -46,8 +47,7 @@ const routes = [
   {
   path: '/teams/:id',
     name: 'TeamDetail',
-    //component: TeamDetailPage,
-    redirect: '/teams', // tmpt until detailpage is implemented
+    component: TeamDetailPage,
     meta: { requiresAuth: true }
   }
 ]
