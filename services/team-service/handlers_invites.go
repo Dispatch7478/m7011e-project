@@ -88,7 +88,7 @@ func (h Handler) ListInvites(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query(`
 		SELECT id::text, team_id::text, inviter_id::text, invitee_email, status, expires_at
 		FROM invites
-		WHERE team_id = $1::uuid
+		WHERE team_id = $1::uuid and status = 'pending'
 		ORDER BY expires_at NULLS LAST`, teamID)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
