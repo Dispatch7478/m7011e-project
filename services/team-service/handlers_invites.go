@@ -117,6 +117,8 @@ func (h Handler) DeleteInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	email, _ := emailFromCtx(r)
+
 	inviteID := mux.Vars(r)["id"]
 	if inviteID == "" {
 		http.Error(w, "missing invite id", http.StatusBadRequest)
@@ -126,8 +128,8 @@ func (h Handler) DeleteInvite(w http.ResponseWriter, r *http.Request) {
 	// Simple rule: inviter can delete their own invite
 	res, err := h.DB.Exec(`
 		DELETE FROM invites
-		WHERE id = $1::uuid AND inviter_id = $2::uuid`,
-		inviteID, userID)
+		WHERE id = $1::uuid AND (inviter_id = $2::uuid or lower(invitee_email) = lower($3))`,
+		inviteID, userID, email)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return

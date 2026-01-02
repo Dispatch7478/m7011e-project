@@ -107,7 +107,9 @@ export default {
     async acceptInvite(invite) {
       try {
         // Calls POST /teams/{team_id}/members
-        await securedApi.post(`/api/teams/${invite.team_id}/members`);
+        await securedApi.post(`/api/teams/${invite.team_id}/members`, {
+          invite_id: invite.id
+        });
         alert(`You have joined ${invite.team_name}!`);
         // Refresh data
         this.myInvites = this.myInvites.filter(i => i.id !== invite.id);
