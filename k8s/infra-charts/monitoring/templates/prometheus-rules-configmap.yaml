@@ -78,3 +78,39 @@ data:
               severity: warning
             annotations:
               summary: "bracket-service p95 latency > 1s"
+  tournament-service.rules.yml: |
+    groups:
+      - name: tournament-service
+        rules:
+          - alert: TournamentServiceDown
+            expr: up{job="tournament-service"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "tournament-service is down"
+
+          - alert: TournamentServiceHigh5xxRate
+            expr: |
+              (
+                sum(rate(tournamentservice_http_requests_total{job="tournament-service",code=~"5.."}[5m]))
+              /
+                sum(rate(tournamentservice_http_requests_total{job="tournament-service"}[5m]))
+              ) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "tournament-service 5xx rate > 5%"
+
+          - alert: TournamentServiceHighLatencyP95
+            expr: |
+              histogram_quantile(
+                0.95,
+                sum(rate(tournamentservice_http_request_duration_seconds_bucket{job="tournament-service"}[5m])) by (le)
+              ) > 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "tournament-service p95 latency > 1s"
