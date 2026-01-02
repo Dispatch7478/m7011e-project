@@ -21,7 +21,7 @@
       <div v-for="team in myTeams" :key="team.id" class="team-card">
         <div class="team-header">
           <div class="team-logo">
-            <img :src="team.logo_url || 'https://via.placeholder.com/64?text=TEAM'" alt="Logo" />
+            <img :src="getTeamLogo(team)" alt="Logo" />
           </div>
           <div class="team-info">
             <h3>{{ team.name }}</h3>
@@ -68,7 +68,13 @@ export default {
       } finally {
         this.loading = false;
       }
-    }
+    },
+    getTeamLogo(team) {
+    if (team.logo_url) return team.logo_url;
+    
+    // Simple grey circle with "T" text placeholder
+    return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e0e0e0'/><text x='50%' y='50%' font-family='Arial' font-size='24' fill='%23888' dy='.3em' text-anchor='middle'>T</text></svg>`;
+  }
   },
   created() {
     if (this.$keycloak && this.$keycloak.tokenParsed) {

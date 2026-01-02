@@ -43,6 +43,13 @@ const routes = [
     component: CreateTeamPage,
     meta: { requiresAuth: true }
   },
+  {
+  path: '/teams/:id',
+    name: 'TeamDetail',
+    //component: TeamDetailPage,
+    redirect: '/teams', // tmpt until detailpage is implemented
+    meta: { requiresAuth: true }
+  }
 ]
 
 const router = createRouter({
