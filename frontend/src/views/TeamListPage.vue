@@ -131,8 +131,8 @@ export default {
     if (this.$keycloak && this.$keycloak.tokenParsed) {
       this.currentUserId = this.$keycloak.tokenParsed.sub;
     }
-    // this.fetchMyTeams();
-    this.fetchData();
+    this.fetchMyTeams();
+    this.fetchMyInvites();
   }
 };
 </script>
