@@ -26,3 +26,9 @@ data:
         static_configs:
           - targets:
               - team-service.t-hub-dev.svc.cluster.local:80
+
+    - job_name: "bracket-service"
+      metrics_path: /metrics
+      static_configs:
+        - targets:
+            - "bracket-service.t-hub-dev.svc.cluster.local:8080"
