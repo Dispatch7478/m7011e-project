@@ -284,13 +284,21 @@ computed: {
 
 .bracket-container {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   overflow-x: auto;
   padding: 20px 0;
+  width: 100%; 
+  box-sizing: border-box;
 }
 
 .bracket-side { display: flex; gap: 40px; }
+.bracket-side:first-child {
+  margin-left: auto;
+}
+.bracket-side:last-child {
+  margin-right: auto;
+}
 
 /* Right Bracket Reversal */
 .bracket-side.right { direction: rtl; } 
