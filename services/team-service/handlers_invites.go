@@ -141,3 +141,75 @@ func (h Handler) DeleteInvite(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+
+type myInviteResponse struct {
+	ID           string     `json:"id"`
+	TeamID       string     `json:"team_id"`
+	TeamName     string     `json:"team_name"` // Needed for UI
+	TeamTag      string     `json:"team_tag"`  // Needed for UI
+	InviterID    string     `json:"inviter_id"`
+	InviteeEmail string     `json:"invitee_email"`
+	Status       string     `json:"status"`
+	ExpiresAt    *time.Time `json:"expires_at,omitempty"`
+}
+
+func (h Handler) MyInvites(w http.ResponseWriter, r *http.Request) {
+	// 1. Get User Email from Context (set by ExtractUser middleware)
+	email, ok := emailFromCtx(r)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	// 2. Query invites matching this email + join teams for display info
+	rows, err := h.DB.Query(`
+		SELECT 
+			i.id::text, 
+			i.team_id::text, 
+			t.name, 
+			t.tag, 
+			i.inviter_id::text, 
+			i.invitee_email, 
+			i.status, 
+			i.expires_at
+		FROM invites i
+		JOIN teams t ON i.team_id = t.id
+		WHERE LOWER(i.invitee_email) = LOWER($1) 
+		  AND i.status = 'pending'
+		ORDER BY i.expires_at ASC
+	`, email)
+
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	// 3. Scan into response struct
+	var out []myInviteResponse
+	for rows.Next() {
+		var inv myInviteResponse
+		if err := rows.Scan(
+			&inv.ID, 
+			&inv.TeamID, 
+			&inv.TeamName, 
+			&inv.TeamTag, 
+			&inv.InviterID, 
+			&inv.InviteeEmail, 
+			&inv.Status, 
+			&inv.ExpiresAt,
+		); err != nil {
+			http.Error(w, "db scanning error", http.StatusInternalServerError)
+			return
+		}
+		out = append(out, inv)
+	}
+
+	// 4. Return JSON
+	w.Header().Set("Content-Type", "application/json")
+	if out == nil {
+		out = []myInviteResponse{} // Return [] instead of null
+	}
+	_ = json.NewEncoder(w).Encode(out)
+}

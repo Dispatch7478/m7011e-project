@@ -5,6 +5,25 @@
       <p>Manage your squads or join a new one.</p>
     </header>
 
+    <div v-if="myInvites.length > 0" class="invites-section">
+      <h2>Pending Invites</h2>
+      <div class="invites-grid">
+        <div v-for="invite in myInvites" :key="invite.id" class="invite-card">
+          <div class="invite-info">
+             <span class="invite-msg">You have been invited to join:</span>
+             <div class="invite-team">
+               <strong>{{ invite.team_name }}</strong> 
+               <span class="tag">[{{ invite.team_tag }}]</span>
+             </div>
+          </div>
+          <div class="invite-actions">
+            <button @click="acceptInvite(invite)" class="btn-accept">Accept</button>
+            <button @click="declineInvite(invite.id)" class="btn-decline">Decline</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="actions-bar">
       <router-link to="/teams/create" class="btn primary-btn">
         + Create New Team
@@ -13,7 +32,7 @@
 
     <div v-if="loading" class="loading-state">Loading teams...</div>
 
-    <div v-else-if="myTeams.length === 0" class="empty-state">
+    <div v-else-if="myTeams.length === 0 && myInvites.length === 0" class="empty-state">
       <p>You are not a member of any team yet.</p>
     </div>
 
@@ -52,6 +71,7 @@ export default {
   data() {
     return {
       myTeams: [],
+      myInvites: [],
       loading: true,
       currentUserId: null
     };
@@ -70,11 +90,42 @@ export default {
       }
     },
     getTeamLogo(team) {
-    if (team.logo_url) return team.logo_url;
-    
-    // Simple grey circle with "T" text placeholder
-    return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e0e0e0'/><text x='50%' y='50%' font-family='Arial' font-size='24' fill='%23888' dy='.3em' text-anchor='middle'>T</text></svg>`;
-  }
+      if (team.logo_url) return team.logo_url;
+      
+      // Simple grey circle with "T" text placeholder
+      return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23e0e0e0'/><text x='50%' y='50%' font-family='Arial' font-size='24' fill='%23888' dy='.3em' text-anchor='middle'>T</text></svg>`;
+    },
+    async fetchMyInvites() {
+      try {
+        const response = await securedApi.get('/api/teams/me/invites');
+        this.myInvites = response.data || [];
+      } catch (error) {
+        console.warn("Failed to fetch invites (backend might be missing endpoint):", error);
+        this.myInvites = [];
+      }
+    },
+    async acceptInvite(invite) {
+      try {
+        // Calls POST /teams/{team_id}/members
+        await securedApi.post(`/api/teams/${invite.team_id}/members`);
+        alert(`You have joined ${invite.team_name}!`);
+        // Refresh data
+        this.myInvites = this.myInvites.filter(i => i.id !== invite.id);
+        this.fetchMyTeams(); 
+      } catch (error) {
+        console.error("Failed to join team", error);
+        alert(error.response?.data?.error || "Failed to accept invite.");
+      }
+    },
+    async declineInvite(inviteId) {
+      if (!confirm("Are you sure you want to decline this invite?")) return;
+      try {
+        await securedApi.delete(`/api/teams/invites/${inviteId}`);
+        this.myInvites = this.myInvites.filter(i => i.id !== inviteId);
+      } catch (error) {
+        console.error("Failed to decline", error);
+      }
+    }
   },
   created() {
     if (this.$keycloak && this.$keycloak.tokenParsed) {
@@ -90,6 +141,28 @@ export default {
 .hero-section { background: #6f42c1; color: white; padding: 40px 20px; border-radius: 0 0 10px 10px; margin-bottom: 30px; }
 .actions-bar { margin-bottom: 30px; display: flex; justify-content: flex-end; }
 
+/* Invites Styles */
+.invites-section { margin-bottom: 40px; text-align: left; }
+.invites-section h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; color: #333; }
+.invites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+
+.invite-card {
+  background: #fff; border: 1px solid #cce5ff; border-left: 5px solid #007bff;
+  border-radius: 5px; padding: 15px; display: flex; justify-content: space-between; align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.invite-info { display: flex; flex-direction: column; }
+.invite-msg { font-size: 0.85rem; color: #666; margin-bottom: 4px; }
+.invite-team { font-size: 1.1rem; }
+.tag { font-family: monospace; font-weight: bold; color: #555; margin-left: 5px; }
+
+.invite-actions { display: flex; gap: 10px; }
+.btn-accept { background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.btn-accept:hover { background: #218838; }
+.btn-decline { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.btn-decline:hover { background: #c82333; }
+
+/* Existing Styles */
 .primary-btn {
   background-color: #28a745; color: white; padding: 10px 20px;
   text-decoration: none; border-radius: 5px; font-weight: bold;
@@ -120,5 +193,5 @@ export default {
 .btn-link { color: #007bff; text-decoration: none; font-weight: 600; }
 .btn-link:hover { text-decoration: underline; }
 
-.loading-state, .empty-state { color: #888; margin-top: 40px; font-size: 1.1rem; }
+.loading-state, .empty-state { color: #888; margin-top: 40px; font-size: 1.1rem;}
 </style>
