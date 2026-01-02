@@ -1,64 +1,68 @@
 <template>
-  <div class="page-container">
+  <div class="team-page-root">
     <header class="hero-section">
       <h1>My Teams</h1>
       <p>Manage your squads or join a new one.</p>
     </header>
 
-    <div v-if="myInvites.length > 0" class="invites-section">
-      <h2>Pending Invites</h2>
-      <div class="invites-grid">
-        <div v-for="invite in myInvites" :key="invite.id" class="invite-card">
-          <div class="invite-info">
-             <span class="invite-msg">You have been invited to join:</span>
-             <div class="invite-team">
-               <strong>{{ invite.team_name }}</strong> 
-               <span class="tag">[{{ invite.team_tag }}]</span>
-             </div>
-          </div>
-          <div class="invite-actions">
-            <button @click="acceptInvite(invite)" class="btn-accept">Accept</button>
-            <button @click="declineInvite(invite.id)" class="btn-decline">Decline</button>
+    <div class="content-container">
+      
+      <div v-if="myInvites.length > 0" class="invites-section">
+        <h2>Pending Invites</h2>
+        <div class="invites-grid">
+          <div v-for="invite in myInvites" :key="invite.id" class="invite-card">
+            <div class="invite-info">
+               <span class="invite-msg">You have been invited to join:</span>
+               <div class="invite-team">
+                 <strong>{{ invite.team_name }}</strong> 
+                 <span class="tag">[{{ invite.team_tag }}]</span>
+               </div>
+            </div>
+            <div class="invite-actions">
+              <button @click="acceptInvite(invite)" class="btn-accept">Accept</button>
+              <button @click="declineInvite(invite.id)" class="btn-decline">Decline</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="actions-bar">
-      <router-link to="/teams/create" class="btn primary-btn">
-        + Create New Team
-      </router-link>
-    </div>
+      <div class="actions-bar">
+        <router-link to="/teams/create" class="btn primary-btn">
+          + Create New Team
+        </router-link>
+      </div>
 
-    <div v-if="loading" class="loading-state">Loading teams...</div>
+      <div v-if="loading" class="loading-state">Loading teams...</div>
 
-    <div v-else-if="myTeams.length === 0 && myInvites.length === 0" class="empty-state">
-      <p>You are not a member of any team yet.</p>
-    </div>
+      <div v-else-if="myTeams.length === 0 && myInvites.length === 0" class="empty-state">
+        <p>You are not a member of any team yet.</p>
+      </div>
 
-    <div v-else class="teams-grid">
-      <div v-for="team in myTeams" :key="team.id" class="team-card">
-        <div class="team-header">
-          <div class="team-logo">
-            <img :src="getTeamLogo(team)" alt="Logo" />
+      <div v-else class="teams-grid">
+        <div v-for="team in myTeams" :key="team.id" class="team-card">
+          <div class="team-header">
+            <div class="team-logo">
+              <img :src="getTeamLogo(team)" alt="Logo" />
+            </div>
+            <div class="team-info">
+              <h3>{{ team.name }}</h3>
+              <span class="team-tag">[{{ team.tag }}]</span>
+            </div>
           </div>
-          <div class="team-info">
-            <h3>{{ team.name }}</h3>
-            <span class="team-tag">[{{ team.tag }}]</span>
+          
+          <div class="team-role">
+            <span v-if="team.captain_id === currentUserId" class="badge captain">Captain</span>
+            <span v-else class="badge member">Member</span>
           </div>
-        </div>
-        
-        <div class="team-role">
-          <span v-if="team.captain_id === currentUserId" class="badge captain">Captain</span>
-          <span v-else class="badge member">Member</span>
-        </div>
 
-        <div class="card-actions">
-           <router-link :to="{ name: 'TeamDetail', params: { id: team.id }}" class="btn-link">
-             Manage Team
-           </router-link>
+          <div class="card-actions">
+             <router-link :to="{ name: 'TeamDetail', params: { id: team.id }}" class="btn-link">
+               Manage Team
+             </router-link>
+          </div>
         </div>
       </div>
+
     </div>
   </div>
 </template>
@@ -140,8 +144,38 @@ export default {
 </script>
 
 <style scoped>
-.page-container { padding: 0 20px; max-width: 1000px; margin: 0 auto; text-align: center; }
-.hero-section { background: #6f42c1; color: white; padding: 40px 20px; border-radius: 0 0 10px 10px; margin-bottom: 30px; }
+/* Root container handles the full width background */
+.team-page-root {
+  width: 100%;
+  min-height: 100vh;
+  padding: 0;
+  background-color: #fcfcfc;
+}
+
+/* Hero Section: Full Width, Blue Background (Matches TournamentPage) */
+.hero-section {
+  background-color: #007bff; /* Changed from Purple to Blue */
+  color: white;
+  padding: 60px 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.hero-section h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+  margin-top: 0;
+}
+
+/* Content Container: Centered, Constrained Width */
+.content-container {
+  padding: 0 20px 40px 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+
 .actions-bar { margin-bottom: 30px; display: flex; justify-content: flex-end; }
 
 /* Invites Styles */
@@ -165,13 +199,14 @@ export default {
 .btn-decline { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 .btn-decline:hover { background: #c82333; }
 
-/* Existing Styles */
+/* Button Styles */
 .primary-btn {
   background-color: #28a745; color: white; padding: 10px 20px;
   text-decoration: none; border-radius: 5px; font-weight: bold;
 }
 .primary-btn:hover { background-color: #218838; }
 
+/* Grid Styles */
 .teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
 
 .team-card {
@@ -196,5 +231,5 @@ export default {
 .btn-link { color: #007bff; text-decoration: none; font-weight: 600; }
 .btn-link:hover { text-decoration: underline; }
 
-.loading-state, .empty-state { color: #888; margin-top: 40px; font-size: 1.1rem;}
+.loading-state, .empty-state { color: #888; margin-top: 40px; font-size: 1.1rem; }
 </style>

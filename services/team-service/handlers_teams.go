@@ -172,20 +172,52 @@ func (h Handler) DeleteTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only captain can delete
-	res, err := h.DB.Exec(`
-		DELETE FROM teams
-		WHERE id = $1::uuid AND captain_id = $2::uuid`,
-		teamID, userID)
+	// Start a transaction
+	tx, err := h.DB.Begin()
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
+	defer tx.Rollback()
 
-	n, _ := res.RowsAffected()
-	if n == 0 {
-		// either not found, or not captain
+	// 1. Check if user is captain (Locking the row to prevent race conditions)
+	var captainID string
+	err = tx.QueryRow(`SELECT captain_id FROM teams WHERE id = $1::uuid FOR UPDATE`, teamID).Scan(&captainID)
+	if err != nil {
+		// Team not found
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if captainID != userID {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	// 2. Delete all Invites for this team
+	_, err = tx.Exec(`DELETE FROM invites WHERE team_id = $1::uuid`, teamID)
+	if err != nil {
+		http.Error(w, "failed to delete invites", http.StatusInternalServerError)
+		return
+	}
+
+	// 3. Delete all Members for this team
+	_, err = tx.Exec(`DELETE FROM team_members WHERE team_id = $1::uuid`, teamID)
+	if err != nil {
+		http.Error(w, "failed to delete members", http.StatusInternalServerError)
+		return
+	}
+
+	// 4. Finally, Delete the Team
+	_, err = tx.Exec(`DELETE FROM teams WHERE id = $1::uuid`, teamID)
+	if err != nil {
+		http.Error(w, "failed to delete team", http.StatusInternalServerError)
+		return
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "db commit error", http.StatusInternalServerError)
 		return
 	}
 
