@@ -129,9 +129,9 @@ data:
           - alert: UserServiceHigh5xxRate
             expr: |
               (
-                sum(rate(user-service_http_requests_total{job="user-service",code=~"5.."}[5m]))
+                sum(rate(userservice_http_requests_total{job="user-service",code=~"5.."}[5m]))
               /
-                sum(rate(user-service_http_requests_total{job="user-service"}[5m]))
+                sum(rate(userservice_http_requests_total{job="user-service"}[5m]))
               ) > 0.05
             for: 5m
             labels:
@@ -143,7 +143,7 @@ data:
             expr: |
               histogram_quantile(
                 0.95,
-                sum(rate(user-service_http_request_duration_seconds_bucket{job="user-service"}[5m])) by (le)
+                sum(rate(userservice_http_request_duration_seconds_bucket{job="user-service"}[5m])) by (le)
               ) > 1
             for: 5m
             labels:
