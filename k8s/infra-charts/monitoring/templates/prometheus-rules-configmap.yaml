@@ -114,3 +114,39 @@ data:
               severity: warning
             annotations:
               summary: "tournament-service p95 latency > 1s"
+  user-service.rules.yml: |
+    groups:
+      - name: user-service
+        rules:
+          - alert: UserServiceDown
+            expr: up{job="user-service"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "user-service is down"
+
+          - alert: UserServiceHigh5xxRate
+            expr: |
+              (
+                sum(rate(user-service_http_requests_total{job="user-service",code=~"5.."}[5m]))
+              /
+                sum(rate(user-service_http_requests_total{job="user-service"}[5m]))
+              ) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "user-service 5xx rate > 5%"
+
+          - alert: UserServiceHighLatencyP95
+            expr: |
+              histogram_quantile(
+                0.95,
+                sum(rate(user-service_http_request_duration_seconds_bucket{job="user-service"}[5m])) by (le)
+              ) > 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "user-service p95 latency > 1s"
