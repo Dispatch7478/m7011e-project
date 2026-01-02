@@ -17,7 +17,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(bracketservice_http_requests_total{job=\"bracket-service\"}[5m]))",
+          "expr": "sum(rate(bracket_service_http_requests_total{job=\"bracket-service\"}[5m]))",
           "legendFormat": "rps"
         }
       ]
@@ -30,7 +30,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(100 * (sum(rate(bracketservice_http_requests_total{job=\"bracket-service\",code=~\"5..\"}[5m])) / sum(rate(bracketservice_http_requests_total{job=\"bracket-service\"}[5m])))) or vector(0)",
+          "expr": "(100 * (sum(rate(bracket_service_http_requests_total{job=\"bracket-service\",code=~\"5..\"}[5m])) / sum(rate(bracket_service_http_requests_total{job=\"bracket-service\"}[5m])))) or vector(0)",
           "legendFormat": "5xx %"
         }
       ]
@@ -43,7 +43,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum(rate(bracketservice_http_request_duration_seconds_bucket{job=\"bracket-service\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(bracket_service_http_request_duration_seconds_bucket{job=\"bracket-service\"}[5m])) by (le))",
           "legendFormat": "p95"
         }
       ]
@@ -56,7 +56,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.99, sum(rate(bracketservice_http_request_duration_seconds_bucket{job=\"bracket-service\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(bracket_service_http_request_duration_seconds_bucket{job=\"bracket-service\"}[5m])) by (le))",
           "legendFormat": "p99"
         }
       ]
@@ -69,7 +69,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "bracketservice_http_in_flight_requests{job=\"bracket-service\"}",
+          "expr": "bracket_service_http_in_flight_requests{job=\"bracket-service\"}",
           "legendFormat": "in_flight"
         }
       ]
@@ -82,7 +82,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(8, sum(rate(bracketservice_http_requests_total{job=\"bracket-service\"}[5m])) by (route))",
+          "expr": "topk(8, sum(rate(bracket_service_http_requests_total{job=\"bracket-service\"}[5m])) by (route))",
           "legendFormat": "{{route}}"
         }
       ]
@@ -95,7 +95,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(8, histogram_quantile(0.95, sum(rate(bracketservice_http_request_duration_seconds_bucket{job=\"bracket-service\"}[5m])) by (le, route)))",
+          "expr": "topk(8, histogram_quantile(0.95, sum(rate(bracket_service_http_request_duration_seconds_bucket{job=\"bracket-service\"}[5m])) by (le, route)))",
           "legendFormat": "{{route}}"
         }
       ]
