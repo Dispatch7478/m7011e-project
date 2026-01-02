@@ -46,7 +46,6 @@
               required
             >
               <option value="single-elimination">Single Elimination</option>
-              <option value="double-elimination">Double Elimination</option>
             </select>
           </div>
 
