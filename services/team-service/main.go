@@ -30,8 +30,8 @@ func main() {
 	// auth subrouter
 	authed := r.PathPrefix("").Subrouter()
 	authed.Use(ExtractUser)
-	authed.HandleFunc("/me/teams", h.MyMemberTeams).Methods("GET")
-	authed.HandleFunc("/me/teams/captain", h.MyCaptainTeams).Methods("GET")
+	authed.HandleFunc("/teams/me/teams", h.MyMemberTeams).Methods("GET")
+	authed.HandleFunc("/teams/me/teams/captain", h.MyCaptainTeams).Methods("GET")
 
 	authed.HandleFunc("/teams/{id}/leave", h.LeaveTeam).Methods("POST")
 	authed.HandleFunc("/teams/{id}/members/{userId}", h.CaptainRemoveMember).Methods("DELETE")
@@ -43,7 +43,7 @@ func main() {
 
 	authed.HandleFunc("/teams/{id}/invites", h.CreateInvite).Methods("POST")
 	authed.HandleFunc("/teams/{id}/invites", h.ListInvites).Methods("GET")
-	authed.HandleFunc("/invites/{id}", h.DeleteInvite).Methods("DELETE")
+	authed.HandleFunc("/teams/invites/{id}", h.DeleteInvite).Methods("DELETE")
 	authed.HandleFunc("/teams/{id}/members", h.AcceptInviteAndJoinTeam).Methods("POST")
 	// metrics endpoint
 	r.Handle("/metrics", metricsHandler()).Methods("GET")
