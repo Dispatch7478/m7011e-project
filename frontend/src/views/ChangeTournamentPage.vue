@@ -109,6 +109,14 @@ export default {
         start_date: new Date(this.tournament.start_date).toISOString(),
       };
 
+      // Backend check prevents changing game/format if tournament has started
+      // Assume if the current status is ongoing or completed then do not send game/format.
+      if (['ongoing', 'completed'].includes(this.tournament.status)) {
+        // Prevent sending game and format in the payload if the tournament has started/completed
+        delete payload.game;
+        delete payload.format;
+      }
+
       try {
         await securedApi.put(`/api/tournaments/${tournamentId}`, payload);
         alert('Tournament updated successfully!');

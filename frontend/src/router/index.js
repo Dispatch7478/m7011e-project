@@ -8,6 +8,8 @@ import CreateTournamentPage from '../views/CreateTournamentPage.vue'
 import BracketPage from '../views/BracketPage.vue'
 import ChangeTournamentPage from '../views/ChangeTournamentPage.vue'
 import AdminPage from '../views/AdminPage.vue'
+import TeamListPage from '../views/TeamListPage.vue';
+import CreateTeamPage from '../views/CreateTeamPage.vue';
 
 const routes = [
   { path: '/',      name: 'Home',   component: HomePage },
@@ -29,7 +31,18 @@ const routes = [
         next('/');
       }
     }
-  }
+  },
+  {
+    path: '/teams',
+    name: 'Teams',
+    component: TeamListPage,
+  },
+  {
+    path: '/teams/create',
+    name: 'CreateTeam',
+    component: CreateTeamPage,
+    meta: { requiresAuth: true }
+  },
 ]
 
 const router = createRouter({
