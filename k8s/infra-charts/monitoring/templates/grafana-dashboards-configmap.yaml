@@ -11,3 +11,7 @@ data:
 
   bracket-service-dashboard.json: |
 {{ .Files.Get "dashboards/bracket-service-dashboard.json" | indent 4 }}
+
+  tournament-service-dashboard.json: |
+{{ .Files.Get "dashboards/tournament-service-dashboard.json" | indent 4 }}
+
