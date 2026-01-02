@@ -81,7 +81,11 @@ export default {
       try {
         this.loading = true;
         // Fetch teams where the user is a member (includes captaincy)
-        const response = await securedApi.get('/api/teams/me/teams');
+        let apiUrl = '/api/teams/me/teams';
+        if (this.$keycloak && this.$keycloak.hasRealmRole('SuperAdmin')) {
+          apiUrl = '/api/teams'; // Fetch all teams for SuperAdmin
+        }
+        const response = await securedApi.get(apiUrl);
         this.myTeams = response.data || [];
       } catch (error) {
         console.error("Failed to fetch teams", error);
