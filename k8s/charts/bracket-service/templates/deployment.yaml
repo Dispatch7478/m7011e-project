@@ -64,3 +64,16 @@ spec:
             # --- Other Environment Variables ---
             - name: TOURNAMENT_SERVICE_URL
               value: {{ .Values.env.TOURNAMENT_SERVICE_URL }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /health   # or /ready if you implement it
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
