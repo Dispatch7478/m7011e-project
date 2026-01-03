@@ -4,7 +4,7 @@ image:
   # CHANGE THIS to your specific api-gateway image path
   repository: ghcr.io/dispatch7478/m7011e-project/api-gateway
   pullPolicy: IfNotPresent
-  tag: "0c7056dd7cf75f2e1a4aef3be79b989d58239dec"
+  tag: "0a07f10e0de0f0e8a9f82498b7585acc9c13b6f6"
 service:
   type: ClusterIP
   port: 80 # The Service listens on 80, forwards to container 8080
