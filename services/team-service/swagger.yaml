@@ -1,0 +1,448 @@
+openapi: 3.0.0
+info:
+  title: Team Service API
+  description: Service for managing teams, memberships, and invites.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Team:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        tag:
+          type: string
+        captain_id:
+          type: string
+          format: uuid
+        logo_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    TeamMember:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [captain, member, admin]
+        joined_at:
+          type: string
+          format: date-time
+
+    Invite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        team_id:
+          type: string
+          format: uuid
+        inviter_id:
+          type: string
+          format: uuid
+        invitee_email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum: [pending, accepted, expired]
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    MyInviteResponse:
+      allOf:
+        - $ref: '#/components/schemas/Invite'
+        - type: object
+          properties:
+            team_name:
+              type: string
+            team_tag:
+              type: string
+
+    CreateTeamRequest:
+      type: object
+      required:
+        - name
+        - tag
+      properties:
+        name:
+          type: string
+        tag:
+          type: string
+        logo_url:
+          type: string
+
+    CreateInviteRequest:
+      type: object
+      required:
+        - invitee_email
+      properties:
+        invitee_email:
+          type: string
+          format: email
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    AcceptInviteRequest:
+      type: object
+      required:
+        - invite_id
+      properties:
+        invite_id:
+          type: string
+          format: uuid
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health Check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  /ready:
+    get:
+      summary: Readiness Check
+      security: []
+      description: Checks if the database connection is active.
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: READY
+        '503':
+          description: Service Unavailable (DB down)
+
+  /teams:
+    get:
+      summary: List Teams
+      security: []
+      description: Returns a list of all teams (publicly available).
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+    post:
+      summary: Create Team
+      description: Creates a new team and assigns the creator as captain.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamRequest'
+      responses:
+        '200':
+          description: Team created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /teams/count:
+    get:
+      summary: Count Teams
+      security: []
+      responses:
+        '200':
+          description: Total count of teams
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  /teams/{id}:
+    delete:
+      summary: Delete Team
+      description: Disbands the team. Only the captain can perform this.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Team deleted successfully
+        '403':
+          description: Forbidden (Not captain)
+        '404':
+          description: Team not found
+
+  /teams/{id}/members:
+    get:
+      summary: List Team Members
+      security: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamMember'
+    post:
+      summary: Join Team (Accept Invite)
+      description: Accepts a pending invite to join the team.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInviteRequest'
+      responses:
+        '204':
+          description: Successfully joined team
+        '404':
+          description: Invite or Team not found
+        '409':
+          description: Invite not pending or already a member
+        '410':
+          description: Invite expired
+
+  /teams/{id}/members/{userId}:
+    delete:
+      summary: Kick Member
+      description: Removes a member from the team. Only the captain can perform this.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Team ID
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: userId
+          required: true
+          description: ID of the user to remove
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Member removed
+        '403':
+          description: Forbidden (Not captain)
+        '404':
+          description: Team or Member not found
+
+  /teams/{id}/leave:
+    post:
+      summary: Leave Team
+      description: Leaves the specified team. Captains cannot leave without deleting the team.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Left team successfully
+        '403':
+          description: Captain cannot leave
+        '404':
+          description: Team not found
+
+  /teams/{id}/is-captain:
+    get:
+      summary: Check Captaincy
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_id:
+                    type: string
+                  is_captain:
+                    type: boolean
+
+  /teams/{id}/invites:
+    get:
+      summary: List Pending Invites
+      description: Lists pending invites for a team. Captain only.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of pending invites
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invite'
+        '403':
+          description: Forbidden (Not captain)
+
+    post:
+      summary: Create Invite
+      description: Invites a user by email. Captain only.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInviteRequest'
+      responses:
+        '200':
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+        '403':
+          description: Forbidden
+
+  /teams/invites/{id}:
+    delete:
+      summary: Revoke/Decline Invite
+      description: Deletes an invite. Can be done by the Captain (Revoke) or the User (Decline).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Invite deleted
+        '404':
+          description: Invite not found or no permission
+
+  /teams/me/teams:
+    get:
+      summary: My Teams
+      description: Returns teams where the authenticated user is a member.
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+
+  /teams/me/teams/captain:
+    get:
+      summary: My Captain Teams
+      description: Returns teams where the authenticated user is the captain.
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+
+  /teams/me/invites:
+    get:
+      summary: My Pending Invites
+      description: Returns pending invites sent to the authenticated user's email.
+      responses:
+        '200':
+          description: List of invites with team details
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MyInviteResponse'

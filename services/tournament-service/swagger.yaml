@@ -1,0 +1,362 @@
+openapi: 3.0.0
+info:
+  title: Tournament Service API
+  description: Service for managing tournaments, registrations, and participants.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+
+paths:
+  /health:
+    get:
+      summary: Health Check
+      description: Returns the health status of the service.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Tournament Service Healthy
+
+  /tournaments:
+    get:
+      summary: List Public Tournaments
+      description: Retrieves a list of all public tournaments.
+      responses:
+        '200':
+          description: A list of tournaments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tournament'
+        '500':
+          description: Internal Server Error
+
+    post:
+      summary: Create a Tournament
+      description: Creates a new tournament in 'draft' status.
+      parameters:
+        - in: header
+          name: X-User-Id
+          schema:
+            type: string
+          required: true
+          description: The ID of the authenticated user (Organizer).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTournamentRequest'
+      responses:
+        '201':
+          description: Tournament created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '400':
+          description: Invalid input or constraints (e.g. Max participants)
+        '401':
+          description: Unauthorized (Missing X-User-Id)
+        '500':
+          description: Internal Server Error
+
+  /tournaments/{id}:
+    get:
+      summary: Get Tournament Details
+      description: Retrieves details of a specific tournament. Access restrictions apply for private tournaments.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The Tournament ID
+        - in: header
+          name: X-User-Id
+          schema:
+            type: string
+          required: false
+          description: The ID of the authenticated user (for private access checks).
+      responses:
+        '200':
+          description: Tournament details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+        '403':
+          description: Forbidden (Private tournament)
+        '404':
+          description: Tournament not found
+
+    put:
+      summary: Update Tournament Details
+      description: Updates tournament configuration. Format/Game cannot be changed if ongoing.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The Tournament ID
+        - in: header
+          name: X-User-Id
+          schema:
+            type: string
+          required: true
+          description: The ID of the authenticated user.
+        - in: header
+          name: X-User-Roles
+          schema:
+            type: string
+          required: false
+          description: Comma-separated user roles (e.g. "SuperAdmin").
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTournamentRequest'
+      responses:
+        '200':
+          description: Tournament updated successfully
+        '400':
+          description: Invalid request
+        '403':
+          description: Forbidden (Not organizer or admin)
+        '404':
+          description: Tournament not found
+        '409':
+          description: Conflict (Cannot change game/format of ongoing tournament)
+        '500':
+          description: Internal Server Error
+
+  /tournaments/{id}/status:
+    patch:
+      summary: Update Tournament Status
+      description: Updates the status of a tournament (e.g., to 'registration_open', 'ongoing').
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The Tournament ID
+        - in: header
+          name: X-User-Id
+          schema:
+            type: string
+          required: true
+          description: The ID of the authenticated user.
+        - in: header
+          name: X-User-Roles
+          schema:
+            type: string
+          required: false
+          description: Comma-separated user roles.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [draft, registration_open, registration_closed, ongoing, completed, cancelled]
+              required:
+                - status
+      responses:
+        '200':
+          description: Status updated successfully
+        '400':
+          description: Invalid status value
+        '403':
+          description: Forbidden
+        '404':
+          description: Tournament not found
+        '500':
+          description: Internal Server Error
+
+  /tournaments/{id}/register:
+    post:
+      summary: Register for Tournament
+      description: Registers a user or a team for a tournament.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The Tournament ID
+        - in: header
+          name: X-User-Id
+          schema:
+            type: string
+          required: true
+          description: The ID of the user registering.
+        - in: header
+          name: X-User-Name
+          schema:
+            type: string
+          required: false
+          description: The secure username from the gateway (preferred for individuals).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+      responses:
+        '201':
+          description: Successfully registered
+        '400':
+          description: Invalid input or requirements (missing Team ID)
+        '403':
+          description: Registration not open
+        '404':
+          description: Tournament not found
+        '409':
+          description: Conflict (Tournament full or already registered)
+        '500':
+          description: Internal Server Error
+
+  /tournaments/{id}/participants:
+    get:
+      summary: Get Participants
+      description: List all registered participants for a tournament.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The Tournament ID
+      responses:
+        '200':
+          description: List of participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Participant'
+        '500':
+          description: Internal Server Error
+
+components:
+  schemas:
+    Tournament:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizer_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        game:
+          type: string
+        format:
+          type: string
+        participant_type:
+          type: string
+          enum: [individual, team]
+        start_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+        min_participants:
+          type: integer
+        max_participants:
+          type: integer
+        public:
+          type: boolean
+        current_participants:
+          type: integer
+          readOnly: true
+
+    CreateTournamentRequest:
+      type: object
+      required:
+        - name
+        - game
+        - format
+        - participant_type
+        - start_date
+        - max_participants
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        game:
+          type: string
+        format:
+          type: string
+        participant_type:
+          type: string
+          enum: [individual, team]
+        start_date:
+          type: string
+          format: date-time
+        min_participants:
+          type: integer
+          default: 2
+        max_participants:
+          type: integer
+          description: Must be between 2 and 16, and a multiple of 2.
+
+    UpdateTournamentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        game:
+          type: string
+        format:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+        min_participants:
+          type: integer
+        max_participants:
+          type: integer
+        public:
+          type: boolean
+
+    RegistrationRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Display name for the participant.
+        team_id:
+          type: string
+          description: Required if participant_type is 'team'.
+
+    Participant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string

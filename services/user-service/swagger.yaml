@@ -1,0 +1,111 @@
+openapi: 3.0.0
+info:
+  title: User Service API
+  description: Service for managing user identities and profiles.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique User ID (from Keycloak).
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    CreateUserRequest:
+      type: object
+      required:
+        - id
+        - username
+        - email
+      properties:
+        id:
+          type: string
+          description: The User ID provided by the authentication provider.
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health Check
+      security: []
+      description: Returns the health status of the service.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  /register:
+    post:
+      summary: Register User
+      description: Creates a new user record in the database. Usually called upon first login.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input or database error (e.g., duplicate ID)
+        '401':
+          description: Unauthorized (Missing or invalid token)
+
+  /users/{id}:
+    get:
+      summary: Get User by ID
+      description: Retrieves user profile details.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The User ID
+      responses:
+        '200':
+          description: User details found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+        '500':
+          description: Internal Server Error

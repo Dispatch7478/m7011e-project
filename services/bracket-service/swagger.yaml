@@ -1,0 +1,172 @@
+openapi: 3.0.0
+info:
+  title: Bracket Service API
+  description: Service for generating and managing tournament brackets and match results.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+
+paths:
+  /health:
+    get:
+      summary: Health Check
+      description: Returns the health status of the service.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Bracket Service Healthy
+
+  /brackets/generate:
+    post:
+      summary: Generate Bracket
+      description: Generates a single-elimination bracket for a specific tournament based on its participants.
+      parameters:
+        - in: query
+          name: tournament_id
+          schema:
+            type: string
+          required: true
+          description: The ID of the tournament to generate a bracket for.
+      responses:
+        '200':
+          description: Bracket generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Bracket generated successfully
+                  rounds:
+                    type: string
+                    example: "4"
+        '400':
+          description: Bad Request (Missing ID or not enough participants)
+        '500':
+          description: Internal Server Error
+
+  /brackets/{tournamentId}:
+    get:
+      summary: Get Bracket
+      description: Retrieves the full bracket (list of matches) for a tournament.
+      parameters:
+        - in: path
+          name: tournamentId
+          schema:
+            type: string
+          required: true
+          description: The Tournament ID
+      responses:
+        '200':
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Match'
+        '500':
+          description: Internal Server Error
+
+  /brackets/matches/{matchId}/result:
+    post:
+      summary: Update Match Result
+      description: Report the score and winner of a specific match. Automatically advances the winner to the next round.
+      parameters:
+        - in: path
+          name: matchId
+          schema:
+            type: string
+          required: true
+          description: The ID of the match to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResultRequest'
+      responses:
+        '200':
+          description: Match updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Match updated
+        '400':
+          description: Invalid request body
+        '404':
+          description: Match not found
+        '500':
+          description: Internal Server Error
+
+components:
+  schemas:
+    Match:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tournament_id:
+          type: string
+          format: uuid
+        round:
+          type: integer
+          description: The round number (highest number is the final, 1 is the first round)
+        match_number:
+          type: integer
+          description: The position of the match within the round
+        player1_id:
+          type: string
+          nullable: true
+          description: ID of the first participant (or null if TBD)
+        player2_id:
+          type: string
+          nullable: true
+          description: ID of the second participant (or null if TBD)
+        next_match_id:
+          type: string
+          nullable: true
+          description: ID of the match the winner advances to
+        status:
+          type: string
+          enum: [pending, active, completed]
+        score_a:
+          type: string
+          nullable: true
+        score_b:
+          type: string
+          nullable: true
+        winner_id:
+          type: string
+          nullable: true
+
+    ResultRequest:
+      type: object
+      required:
+        - score_a
+        - score_b
+        - winner_id
+      properties:
+        score_a:
+          type: string
+          description: Score for Player 1
+        score_b:
+          type: string
+          description: Score for Player 2
+        winner_id:
+          type: string
+          description: The ID of the participant who won
