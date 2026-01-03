@@ -1,7 +1,7 @@
 replicaCount: 1
 image:
   repository: ghcr.io/dispatch7478/m7011e-project/team-service
-  tag: 343d191401509123408089b4667b910202499182
+  tag: 445167c76e9626d03c777f04e363814be2cd0aa1
   pullPolicy: IfNotPresent
 service:
   type: ClusterIP
