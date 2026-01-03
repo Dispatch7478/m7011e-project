@@ -1,0 +1,65 @@
+{
+  "title": "Microservices Health Dashboard",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-5m", "to": "now" },
+  "tags": ["overview", "microservices", "prometheus"],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Request Rate (req/sec)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (job) (rate({__name__=~\".*_http_requests_total\"}[5m]))",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Error Rate (%)",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "100 * ((sum by (job) (rate({__name__=~\".*_http_requests_total\",code=~\"5..\"}[5m])) OR on(job) vector(0)) / sum by (job) (rate({__name__=~\".*_http_requests_total\"}[5m])))",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Response Time (p95 & p50)",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (job, le) (rate({__name__=~\".*_http_request_duration_seconds_bucket\"}[5m])))",
+          "legendFormat": "{{job}} p95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum by (job, le) (rate({__name__=~\".*_http_request_duration_seconds_bucket\"}[5m])))",
+          "legendFormat": "{{job}} p50"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Active Services",
+      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "count(up == 1)" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Total Requests (5m)",
+      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(increase({__name__=~\".*_http_requests_total\"}[5m]))"
+        }
+      ]
+    }
+  ]
+}
