@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"net/http"
 	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -22,14 +20,8 @@ func main() {
 	userServiceURL := getEnv("USER_SERVICE_URL", "")
 	port := getEnv("PORT", ":8080")
 
-	// Create a custom HTTP client that skips TLS verification
-	// WARNING: This is insecure and should not be used in production!
-	// It is acceptable for a development environment with staging certificates.
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
-	ctx := oidc.ClientContext(context.Background(), client)
+	// With production certificates, we use the default HTTP client which performs TLS verification.
+	ctx := context.Background()
 
 	// Initialize the OIDC provider
 	provider, err := oidc.NewProvider(ctx, keycloakURL+"/realms/"+keycloakRealm)

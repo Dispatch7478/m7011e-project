@@ -28,4 +28,4 @@ keycloak:
 # Ingress configuration
 domain: keycloak.ltu-m7011e-4.se
 email: nahtse-2@student.ltu.se   
-certIssuer: letsencrypt-staging
+certIssuer: letsencrypt-production
