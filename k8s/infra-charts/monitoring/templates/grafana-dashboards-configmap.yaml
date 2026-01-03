@@ -17,3 +17,6 @@ data:
 
   user-service-dashboard.json: |
 {{ .Files.Get "dashboards/user-service-dashboard.json" | indent 4 }}
+
+  microservices-overview.json: |
+{{ .Files.Get "dashboards/microservices-overview.json" | indent 4 }}
