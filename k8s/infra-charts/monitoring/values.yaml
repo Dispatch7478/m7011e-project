@@ -63,7 +63,7 @@ grafana:
 ingress:
   enabled: true
   className: traefik
-  clusterIssuer: letsencrypt-production
+  clusterIssuer: letsencrypt-prod
   entrypoints: websecure
 
   grafana:
