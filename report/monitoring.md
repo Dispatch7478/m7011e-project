@@ -19,21 +19,21 @@ flowchart LR
     end
   end
 
-  %% metrics scraping
   P -->|scrape /metrics| S1
   P -->|scrape /metrics| S2
   P -->|scrape /metrics| S3
   P -->|scrape /metrics| S4
 
-  %% grafana queries prometheus
   G -->|PromQL queries| P
-
-  %% users
   U[(Developer / Student)] -->|view dashboards| G
 
   classDef svc fill:#1f2937,stroke:#93c5fd,color:#e5e7eb
   classDef mon fill:#111827,stroke:#34d399,color:#e5e7eb
+```
 
+## 2. HTTP Request → Metrics Collection Flow
+
+```mermaid
 flowchart TB
   R["Incoming HTTP Request"]
   R --> M["metrics middleware (in_flight, duration, requests_total)"]
@@ -41,3 +41,4 @@ flowchart TB
   H --> Resp["HTTP Response"]
   M -->|updates metrics| REG["Prometheus client registry"]
   REG -->|exposed at /metrics| METRICS["/metrics endpoint"]
+```
