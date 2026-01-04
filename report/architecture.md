@@ -86,7 +86,7 @@ The single entry point for all client-side requests. Its responsibilities includ
 - **Centralized Cross-Cutting Concerns:** Serves as a central point for CORS policy, rate limiting, and request logging.
 
 ### User Service
-The source of truth for user profile data. It stores information like usernames and emails, which are cached from Keycloak upon user creation. It does **not** handle authentication itself.
+It stores information like usernames and emails, which are cached from Keycloak upon user creation. It does **not** handle authentication itself.
 
 ### Team Service
 Responsible for all team-related logic:
