@@ -458,3 +458,77 @@ func TestCreateTournamentHandler_ValidationFailure(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "Max participants must be a multiple of 2")
 	assert.NoError(t, mockDB.ExpectationsWereMet())
 }
+
+func TestUpdateTournamentStatusHandler_PermissionDenied(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool()
+	assert.NoError(t, err)
+	defer mockDB.Close()
+	mockRMQ := &MockRabbitMQ{}
+
+	tournamentID := "tourn-123"
+	organizerID := "real-organizer"
+	attackerID := "hacker"
+
+	// 1. Fetch Tournament
+	mockDB.ExpectQuery("SELECT id, organizer_id, status FROM tournaments").
+		WithArgs(tournamentID).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "organizer_id", "status"}).
+			AddRow(tournamentID, organizerID, "draft"))
+
+	// 2. Expect NO Update execution
+
+	req := httptest.NewRequest(http.MethodPatch, "/", bytes.NewBufferString(`{"status":"registration_open"}`))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set("X-User-Id", attackerID) // Wrong User
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues(tournamentID)
+
+	handler := UpdateTournamentStatusHandler(mockDB, mockRMQ)
+	_ = handler(c)
+
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestGetTournamentHandler_PrivateForbidden(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool()
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	tournamentID := "tourn-private"
+	organizerID := "vip-user"
+	visitorID := "random-user"
+
+	// 1. Fetch returns Public=false
+	columns := []string{
+		"id", "organizer_id", "name", "description", "game",
+		"format", "participant_type", "start_date", "status",
+		"min_participants", "max_participants", "public", "current_participants",
+	}
+	
+	mockDB.ExpectQuery("SELECT .* FROM tournaments t").
+		WithArgs(tournamentID).
+		WillReturnRows(pgxmock.NewRows(columns).AddRow(
+			tournamentID, organizerID, "Secret Club", "Desc", "Pong",
+			"single", "individual", time.Now(), "draft",
+			2, 16, false, 0, // <--- Public is FALSE
+		))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-User-Id", visitorID) // Not the organizer
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues(tournamentID)
+
+	handler := GetTournamentHandler(mockDB)
+	_ = handler(c)
+
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.Contains(t, rec.Body.String(), "do not have permission")
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
