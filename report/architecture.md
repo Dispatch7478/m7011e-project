@@ -16,8 +16,6 @@ graph TD
   BS -->|SQL| BDB[(PostgreSQL - Bracket)]
 
   TS -->|Publish events| MQ[RabbitMQ]
-  BS -->|Consume events| MQ
-  TeamS -->|Consume events| MQ
 
   US -->|Metrics| Mon[Prometheus/Grafana]
   TS -->|Metrics| Mon
