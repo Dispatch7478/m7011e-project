@@ -1,4 +1,4 @@
-# Observability & Metrics Architecture
+# Monitoring decisions and graphs
 
 ## 1. Kubernetes Metrics Scraping & Visualization Flow
 
@@ -6,16 +6,16 @@
 flowchart LR
   subgraph K8s[Kubernetes Cluster]
     subgraph NSAPP[t-hub-dev namespace]
-      S1[team-service\n/metrics]:::svc
-      S2[user-service\n/metrics]:::svc
-      S3[tournament-service\n/metrics]:::svc
-      S4[bracket-service\n/metrics]:::svc
+      S1[team-service metrics]:::svc
+      S2[user-service metrics]:::svc
+      S3[tournament-service metrics]:::svc
+      S4[bracket-service metrics]:::svc
       GW[api-gateway]:::svc
     end
 
     subgraph NSMON[monitoring namespace]
-      P[Prometheus\nscrape jobs]:::mon
-      G[Grafana\nDashboards + Alerts]:::mon
+      P[Prometheus scrape jobs]:::mon
+      G[Grafana Dashboards + Alerts]:::mon
     end
   end
 
@@ -42,3 +42,8 @@ flowchart TB
   M -->|updates metrics| REG["Prometheus client registry"]
   REG -->|exposed at /metrics| METRICS["/metrics endpoint"]
 ```
+## 3. Prometheus and Grafana
+We used prometheus to scrape the services and grafana for some simple graphs and alerts. To access prometheus directly one needs to portforward to the service. But we decided to expose grafana with ingress. We know that this is not best practice but having a stable access point made development easier. The dashboards can be found at k8s/infra-charts/monitoring/dashboards/ and the alerts at k8s/infra-charts/monitoring/templates/prometheus-rules-configmap.yaml
+
+## 4. No logging or tracing tools used
+Some basic logging is provided by rancher/argocd and that is the only thing we used when working on this project.
