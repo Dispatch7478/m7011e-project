@@ -177,11 +177,19 @@ func RegisterTournamentHandler(db DBClient) echo.HandlerFunc {
 		if err := c.Bind(&req); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 		}
+
+		ctx := context.Background()
+		tx, err := db.Begin(ctx)
+		if err != nil {
+			log.Printf("Failed to start transaction: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Database error"})
+		}
+		defer tx.Rollback(ctx)
 		
-		// 2. Fetch Tournament Details (Now including participant_type)
+		// 2. Fetch and lock (with FOR UPDATE) the tournament
 		var t Tournament
-		query := `SELECT id, status, public, max_participants, participant_type FROM tournaments WHERE id = $1`
-		err := db.QueryRow(context.Background(), query, tournamentID).Scan(
+		query := `SELECT id, status, public, max_participants, participant_type FROM tournaments WHERE id = $1 FOR UPDATE`
+		err = tx.QueryRow(ctx, query, tournamentID).Scan(
 			&t.ID, &t.Status, &t.Public, &t.MaxParticipants, &t.ParticipantType,
 		)
 
@@ -223,12 +231,13 @@ func RegisterTournamentHandler(db DBClient) echo.HandlerFunc {
 		// 5. Check Capacity
 		var count int
 		countQuery := `SELECT count(*) FROM registrations WHERE tournament_id = $1`
-		err = db.QueryRow(context.Background(), countQuery, tournamentID).Scan(&count)
+		err = tx.QueryRow(context.Background(), countQuery, tournamentID).Scan(&count)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check registration count"})
 		}
 
 		if count >= t.MaxParticipants {
+			// The transaction will be rolled back by defer.
 			return c.JSON(http.StatusConflict, map[string]string{"error": "Tournament is full"})
 		}
 
@@ -237,9 +246,7 @@ func RegisterTournamentHandler(db DBClient) echo.HandlerFunc {
 			INSERT INTO registrations (tournament_id, participant_id, participant_name, status)
 			VALUES ($1, $2, $3, 'approved') 
 		`
-		// Note: Changed status to 'approved' by default for MVP simplicity, or keep 'pending' if you have approval logic.
-		
-		_, err = db.Exec(context.Background(), insertQuery, tournamentID, participantID, req.Name)
+		_, err = tx.Exec(context.Background(), insertQuery, tournamentID, participantID, req.Name)
 		if err != nil {
 			// Check for Postgres Unique Violation (Error Code 23505)
 			if err.Error() == "ERROR: duplicate key value violates unique constraint \"registrations_pkey\" (SQLSTATE 23505)" {
@@ -248,6 +255,12 @@ func RegisterTournamentHandler(db DBClient) echo.HandlerFunc {
 			
 			log.Printf("Database Insert Error: %v", err)
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to register for tournament"})
+		}
+
+		// 6. Commit the transaction
+		if err := tx.Commit(ctx); err != nil {
+			log.Printf("Commit failed: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to commit transaction"})
 		}
 
 		return c.JSON(http.StatusCreated, map[string]string{"message": "Successfully registered", "participant_id": participantID})

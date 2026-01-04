@@ -195,9 +195,12 @@ func TestRegisterTournamentHandler_Success(t *testing.T) {
 	userID := "user-100"
 	reqBody := `{"name": "Player One"}`
 
+	// Expect transaction
+	mockDB.ExpectBegin()
+
 	// 2. Expectation 1: Check Tournament Details
-	// SELECT id, status, public, max_participants, participant_type FROM tournaments...
-	mockDB.ExpectQuery("SELECT id, status, public, max_participants, participant_type FROM tournaments").
+	// Need regex matching (.*) to cover the query string variations
+	mockDB.ExpectQuery("SELECT id, status, public, max_participants, participant_type FROM tournaments .* FOR UPDATE").
 		WithArgs(tournamentID).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "status", "public", "max", "type"}).
 			AddRow(tournamentID, "registration_open", true, 16, "individual"))
@@ -212,6 +215,8 @@ func TestRegisterTournamentHandler_Success(t *testing.T) {
 	mockDB.ExpectExec("INSERT INTO registrations").
 		WithArgs(tournamentID, userID, "Player One").
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	mockDB.ExpectCommit()
 
 	// 5. Execute
 	req := httptest.NewRequest(http.MethodPost, "/tournaments/"+tournamentID+"/register", bytes.NewBufferString(reqBody))
@@ -241,6 +246,8 @@ func TestRegisterTournamentHandler_Full(t *testing.T) {
 	tournamentID := "tourn-full"
 	userID := "user-101"
 
+	mockDB.ExpectBegin()
+
 	// 1. Tournament is Open...
 	mockDB.ExpectQuery("SELECT id, status, public, max_participants, participant_type FROM tournaments").
 		WithArgs(tournamentID).
@@ -251,6 +258,8 @@ func TestRegisterTournamentHandler_Full(t *testing.T) {
 	mockDB.ExpectQuery("SELECT count\\(\\*\\) FROM registrations").
 		WithArgs(tournamentID).
 		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(16))
+	
+	mockDB.ExpectRollback()
 
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"name":"Late Player"}`))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -410,5 +419,42 @@ func TestGetParticipantsHandler(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "Alice")
 	assert.Contains(t, rec.Body.String(), "Bob")
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestCreateTournamentHandler_ValidationFailure(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool() // Mock DB is needed to satisfy the handler signature
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	mockRMQ := &MockRabbitMQ{}
+
+	// 1. Invalid Payload (5 participants is not a power of 2)
+	reqPayload := Tournament{
+		Name:            "Bad Tournament",
+		Game:            "Pong",
+		ParticipantType: "individual",
+		MinParticipants: 2,
+		MaxParticipants: 5, // <--- INVALID: Odd number
+	}
+	body, _ := json.Marshal(reqPayload)
+
+	// 2. no db needed here
+
+	// 3. Request
+	req := httptest.NewRequest(http.MethodPost, "/tournaments", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set("X-User-Id", "user-123")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	handler := CreateTournamentHandler(mockDB, mockRMQ)
+	err = handler(c)
+
+	// 4. Assertions
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code) 
+	assert.Contains(t, rec.Body.String(), "Max participants must be a multiple of 2")
 	assert.NoError(t, mockDB.ExpectationsWereMet())
 }
