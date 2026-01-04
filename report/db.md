@@ -5,8 +5,6 @@ This document provides a complete overview of the database schemas for all micro
 ## Entity-Relationship Diagram (ERD)
 
 This diagram shows the tables for each service and the relationships between them.
-- `||--|{` : One-to-Many
-- `||--o{` : One-to-Many (logical/optional link)
 
 ```mermaid
 erDiagram
