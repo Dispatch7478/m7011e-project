@@ -418,3 +418,109 @@ func TestUpdateMatchResult_InvalidBody(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
+
+func TestGetBracket_DBError(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherRegexp))
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	h := &BracketHandler{DB: mockDB}
+
+	// Mock DB Query Error
+	mockDB.ExpectQuery(`(?s).*SELECT.*FROM matches.*`).
+		WithArgs("t1").
+		WillReturnError(errors.New("db connection failure"))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("tournamentId")
+	c.SetParamValues("t1")
+
+	h.GetBracket(c)
+
+	// Expect 500 Internal Server Error
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Failed to fetch bracket")
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestUpdateMatchResult_UpdateError(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	h := &BracketHandler{DB: mockDB}
+
+	matchID := "match-1"
+	body := `{"score_a": "1", "score_b": "0", "winner_id": "w"}`
+
+	mockDB.ExpectBegin()
+	
+	// 1. Fetch Success
+	var nextMatchID string = "next-id"
+	mockDB.ExpectQuery(`SELECT next_match_id, match_number FROM matches WHERE id = $1`).
+		WithArgs(matchID).
+		WillReturnRows(pgxmock.NewRows([]string{"next_match_id", "match_number"}).AddRow(&nextMatchID, 1))
+
+	// 2. Update Failure (Simulate DB error during write)
+	updateScoreSQL := `
+		UPDATE matches 
+		SET score_a = $1, score_b = $2, winner_id = $3, status = 'completed' 
+		WHERE id = $4`
+	mockDB.ExpectExec(updateScoreSQL).
+		WithArgs("1", "0", "w", matchID).
+		WillReturnError(errors.New("write failure"))
+
+	mockDB.ExpectRollback() // The handler should rollback on error
+
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("match_id")
+	c.SetParamValues(matchID)
+
+	_ = h.UpdateMatchResult(c)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Failed to update match result")
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestGenerateBracket_DBTxError(t *testing.T) {
+	e := echo.New()
+	mockDB, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherRegexp))
+	assert.NoError(t, err)
+	defer mockDB.Close()
+
+	// Mock External Service Success
+	tsMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		participants := []Participant{
+			{ID: "p1", Name: "Player 1"}, {ID: "p2", Name: "Player 2"},
+		}
+		json.NewEncoder(w).Encode(participants)
+	}))
+	defer tsMock.Close()
+
+	h := &BracketHandler{
+		DB:                   mockDB,
+		RMQ:                  &MockRabbitMQ{},
+		TournamentServiceURL: tsMock.URL,
+	}
+
+	// Mock Transaction Begin Failure
+	mockDB.ExpectBegin().WillReturnError(errors.New("tx begin failed"))
+
+	req := httptest.NewRequest(http.MethodPost, "/brackets/generate?tournament_id=t1", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err = h.GenerateBracket(c)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Contains(t, rec.Body.String(), "DB Transaction failed")
+}
