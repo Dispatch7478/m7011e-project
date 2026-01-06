@@ -17,8 +17,19 @@ func main() {
 	// Configuration via environment variables
 	keycloakURL := getEnv("KEYCLOAK_URL", "")
 	keycloakRealm := getEnv("KEYCLOAK_REALM", "t-hub")
-	userServiceURL := getEnv("USER_SERVICE_URL", "")
 	port := getEnv("PORT", ":8080")
+
+	// Find the user-service URL from the config, making it the single source of truth
+	var userServiceURL string
+	for _, service := range config.Services {
+		if service.Name == "user-service" {
+			userServiceURL = service.URL
+			break
+		}
+	}
+	if userServiceURL == "" {
+		panic("user-service URL not found in config.yaml")
+	}
 
 	// With production certificates, we use the default HTTP client which performs TLS verification.
 	ctx := context.Background()
@@ -39,7 +50,7 @@ func main() {
 	}
 
 	// Create the router
-	e := NewRouter(config, provider, registrationHandler)
+	e := NewRouter(config, provider, registrationHandler, userServiceURL)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(port))

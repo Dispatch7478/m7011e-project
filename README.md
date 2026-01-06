@@ -116,7 +116,7 @@ go test -v ./...
 ```
 
 ### Load testing
-In the folder `/tests` there are two scripts to stress test the system with concurrent users (default 50). Running the tools requires the tool `k6`
+In the folder `/tests` there are two scripts to stress test the system with concurrent users (default 50). Running the tests requires the tool `k6`
 
 ```bash
 k6 run tests/race_join_load.js

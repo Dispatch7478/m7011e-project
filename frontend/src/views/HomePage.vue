@@ -12,13 +12,13 @@
         <div class="card create-card">
           <h2>Create a New Tournament</h2>
           <p>Organize your league, cup, or bracket event in minutes. Set the rules, schedule the matches, and send out invitations!</p>
-          <button @click="goToSignup" class="btn primary-btn">Get Started</button>
+          <button @click="getStarted" class="btn primary-btn">Get Started</button>
         </div>
         
         <div class="card join-card">
           <h2>Find a Tournament to Join</h2>
           <p>Browse local events, view brackets, and register your team. Time to compete!</p>
-          <button @click="handleBrowse" class="btn secondary-btn">Browse Tournaments</button>
+          <button @click="browseTournaments" class="btn secondary-btn">Browse Tournaments</button>
         </div>
       </section>
       
@@ -44,13 +44,19 @@ export default {
     NavBar
   },
   methods: {
-    goToSignup() {
-      // Directs users to the sign-up page as a first step
-      this.$router.push('/signup')
+    getStarted() {
+      if (this.$keycloak && this.$keycloak.authenticated) {
+        this.$router.push({ name: 'CreateTournament' });
+      } else {
+        this.$keycloak.login();
+      }
     },
-    handleBrowse() {
-      // Placeholder for browsing functionality
-      alert('Browsing functionality coming soon! Please sign up or log in.')
+    browseTournaments() {
+      if (this.$keycloak && this.$keycloak.authenticated) {
+        this.$router.push({ name: 'Tournaments' });
+      } else {
+        this.$keycloak.login();
+      }
     }
   }
 }
