@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *RegistrationHandler, userServiceURL string) *echo.Echo {
+func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *RegistrationHandler, deletionHandler *DeletionHandler, userServiceURL string) *echo.Echo {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
@@ -27,6 +27,11 @@ func NewRouter(config *Config, provider *oidc.Provider, registrationHandler *Reg
 
 	// Registration endpoint (public)
 	e.POST("/api/register", registrationHandler.Handle)
+	// User Deletion Endpoint (Authenticated)
+	// We create a group for protected user routes
+	userGroup := e.Group("/api/users")
+	userGroup.Use(AuthMiddleware(provider, userServiceURL))
+	userGroup.DELETE("/me", deletionHandler.Handle)
 
 	for _, service := range config.Services {
 		target, err := url.Parse(service.URL)

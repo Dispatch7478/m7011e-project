@@ -532,3 +532,34 @@ func TestGetTournamentHandler_PrivateForbidden(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "do not have permission")
 	assert.NoError(t, mockDB.ExpectationsWereMet())
 }
+
+func TestHealthCheckHandler_StatusOK(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Call the handler
+	err := HealthCheckHandler(c)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "Tournament Service Healthy", rec.Body.String())
+}
+
+func TestMetricsHandler_StatusOK(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Call the handler
+	handler := MetricsHandler()
+	err := handler(c)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	// The body contains Prometheus metrics, so just checking status is enough for this test
+}

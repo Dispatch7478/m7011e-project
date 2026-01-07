@@ -49,8 +49,13 @@ func main() {
 		UserService: userServiceURL,
 	}
 
+	deletionHandler := &DeletionHandler{
+        Keycloak:    keycloakClient,
+        UserService: userServiceURL,
+    }
+
 	// Create the router
-	e := NewRouter(config, provider, registrationHandler, userServiceURL)
+	e := NewRouter(config, provider, registrationHandler, deletionHandler, userServiceURL)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(port))
