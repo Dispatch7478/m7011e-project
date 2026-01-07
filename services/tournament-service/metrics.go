@@ -12,7 +12,7 @@ import (
 
 var (
 	httpInFlight = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "tournament_service",
+		Namespace: "tournamentservice",
 		Subsystem: "http",
 		Name:      "in_flight_requests",
 		Help:      "Current number of in-flight HTTP requests.",
@@ -20,7 +20,7 @@ var (
 
 	httpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: "tournament_service",
+			Namespace: "tournamentservice",
 			Subsystem: "http",
 			Name:      "requests_total",
 			Help:      "Total number of HTTP requests.",
@@ -30,7 +30,7 @@ var (
 
 	httpRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "tournament_service",
+			Namespace: "tournamentservice",
 			Subsystem: "http",
 			Name:      "request_duration_seconds",
 			Help:      "Duration of HTTP requests in seconds.",
