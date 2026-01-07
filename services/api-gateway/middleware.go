@@ -18,31 +18,6 @@ type User struct {
 	Email    string `json:"email"`
 }
 
-// fetchUserDetails makes a request to the user-service to get user details
-// func fetchUserDetails(ctx context.Context, userServiceURL, userID string) (*User, error) {
-// 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/users/%s", userServiceURL, userID), nil)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to create user-service request: %w", err)
-// 	}
-
-// 	resp, err := http.DefaultClient.Do(req)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to call user-service: %w", err)
-// 	}
-// 	defer resp.Body.Close()
-
-// 	if resp.StatusCode != http.StatusOK {
-// 		return nil, fmt.Errorf("user-service returned non-ok status: %d", resp.StatusCode)
-// 	}
-
-// 	var user User
-// 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-// 		return nil, fmt.Errorf("failed to decode user-service response: %w", err)
-// 	}
-
-// 	return &user, nil
-// }
-
 func AuthMiddleware(provider *oidc.Provider, userServiceURL string) echo.MiddlewareFunc {
 	verifier := provider.Verifier(&oidc.Config{
 		SkipClientIDCheck: true, // We trust the issuer (Keycloak), any client is fine
