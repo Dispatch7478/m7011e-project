@@ -109,3 +109,22 @@ paths:
           description: User not found
         '500':
           description: Internal Server Error
+    delete:
+      summary: Delete User
+      description: Deletes a user record from the database.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The User ID to delete
+      responses:
+        '204':
+          description: User deleted successfully (No Content)
+        '400':
+          description: Invalid input (e.g., missing user ID)
+        '404':
+          description: User not found
+        '500':
+          description: Internal Server Error

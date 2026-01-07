@@ -24,6 +24,7 @@ func main() {
 	// user endpoints
 	r.HandleFunc("/register", h.CreateUser).Methods("POST")
 	r.HandleFunc("/users/{id}", h.GetUser).Methods("GET")
+	r.HandleFunc("/users/{id}", h.DeleteUser).Methods("DELETE")
 
 	// metrics endpoint
 	r.Handle("/metrics", metricsHandler()).Methods("GET")
