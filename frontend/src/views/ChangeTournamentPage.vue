@@ -92,12 +92,19 @@ export default {
     async saveTournament() {
       const tournamentId = this.$route.params.id;
       
-      // Ensure numbers are not negative
-      if (this.tournament.min_participants < 2 || this.tournament.max_participants < 2) {
-          alert("Minimum and maximum participants must be at least 2.");
+      // Participant validation
+      if (this.tournament.max_participants < 2 || this.tournament.max_participants > 16) {
+          alert("Maximum participants must be between 2 and 16.");
           return;
       }
-      // Ensure min is not greater than max
+      if (this.tournament.max_participants % 2 !== 0) {
+          alert("Maximum participants must be a multiple of 2.");
+          return;
+      }
+      if (this.tournament.min_participants < 2) {
+          alert("Minimum participants must be at least 2.");
+          return;
+      }
       if (this.tournament.min_participants > this.tournament.max_participants) {
           alert("Minimum participants cannot be greater than maximum participants.");
           return;

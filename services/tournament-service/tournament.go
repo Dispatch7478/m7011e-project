@@ -446,13 +446,23 @@ func UpdateTournamentDetailsHandler(db DBClient, rmq EventPublisher) echo.Handle
 			return c.JSON(http.StatusForbidden, map[string]string{"error": "You do not have permission to edit this tournament"})
 		}
 
-		// 4. Safety Checks (Logic Guard)
+		// 4. Business Logic Validation
+		if req.MaxParticipants != 0 { // Only validate if the field is being updated
+			if req.MaxParticipants < 2 || req.MaxParticipants > 16 {
+				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Max participants must be between 2 and 16"})
+			}
+			if req.MaxParticipants%2 != 0 {
+				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Max participants must be a multiple of 2"})
+			}
+		}
+
+		// 5. Safety Checks (Logic Guard)
 		// If tournament is already active/completed, prevent changing Format or Game
 		if (t.Status == "ongoing" || t.Status == "completed") && (req.Format != "" || req.Game != "") {
 			return c.JSON(http.StatusConflict, map[string]string{"error": "Cannot change Game or Format once tournament has started"})
 		}
 
-		// 5. Update Query
+		// 6. Update Query
 		// Note: This query updates fields only if they are provided (handling partial updates roughly)
 		// For a true PUT, you usually replace all, but here's a robust SQL approach:
 		updateQuery := `
