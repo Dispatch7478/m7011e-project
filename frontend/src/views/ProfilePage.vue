@@ -28,10 +28,10 @@
           <div class="info-value">{{ profile.email }}</div>
         </div>
 
-        <div class="info-row">
+        <!-- <div class="info-row">
           <label>Team</label>
           <div class="info-value">{{ profile.team }}</div>
-        </div>
+        </div> -->
       </div>
 
       <div class="button-row">
@@ -106,6 +106,7 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted, getCurrentInstance } from "vue";
+import securedApi from '@/axios-auth.js';
 
 const { proxy } = getCurrentInstance();
 const keycloak = proxy.$keycloak;
